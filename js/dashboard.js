@@ -143,7 +143,8 @@
   // chart with a compact leaderboard). `rowsFor(side)` returns the rows to
   // show for that side, already in display order; `valueHtml(row, maxAbs)`
   // returns the value/bar markup for one row.
-  function renderRankColumns(containerId, spRows, ndxRows, valueHtml, sideForRow) {
+  function renderRankColumns(containerId, spRows, ndxRows, valueHtml, onRowClick) {
+    onRowClick = onRowClick || ((side, ticker) => switchToExplorer(side, ticker));
     const maxAbs = Math.max(
       1e-9,
       ...spRows.map(r => Math.abs(r._barValue)),
@@ -151,7 +152,7 @@
     );
     function col(sideLabel, sideClass, rows, side) {
       const rowsHtml = rows.map((r, i) => `
-        <div class="rank-row" data-ticker="${r.ticker}" data-side="${side}">
+        <div class="rank-row" data-key="${r.ticker}" data-side="${side}">
           <span class="rank-num">${i+1}</span>
           <span class="rank-name"><span class="t">${r.ticker}</span><span class="c">${r.company||""}</span></span>
           ${valueHtml(r, maxAbs)}
@@ -164,8 +165,8 @@
     $(containerId).innerHTML =
       col("S&P 500", "sp", spRows, "sp") + col("Nasdaq 100", "ndx", ndxRows, "ndx");
 
-    $(containerId).querySelectorAll(".rank-row[data-ticker]").forEach(row => {
-      row.addEventListener("click", () => switchToExplorer(row.dataset.side, row.dataset.ticker));
+    $(containerId).querySelectorAll(".rank-row[data-key]").forEach(row => {
+      row.addEventListener("click", () => onRowClick(row.dataset.side, row.dataset.key));
     });
   }
 
@@ -187,7 +188,8 @@
       }).filter(r => r._n > 0).sort((a,b) => b._value - a._value).slice(0, 6);
       renderRankColumns("list-leaderboard", spRows, ndxRows, (r, maxAbs) => `
         <span class="rank-bars"><span class="mini-bar-track"><span class="mini-bar-fill" style="width:${Math.abs(r._value)/maxAbs*100}%;background:${r._value>=0?COLORS.good:COLORS.critical}"></span></span></span>
-        <span class="rank-value">${measureInfo.fmt(r._value)}</span>`);
+        <span class="rank-value">${measureInfo.fmt(r._value)}</span>`,
+        (side, sector) => { els.sectorFilter.value = sector; renderOverview(); });
     } else {
       const spRows = pool.spPool.slice().sort((a,b) => b[key]-a[key]).slice(0, 5).map(s => ({...s, _barValue: s[key], _value: s[key]}));
       const ndxRows = pool.ndxPool.slice().sort((a,b) => b[key]-a[key]).slice(0, 5).map(s => ({...s, _barValue: s[key], _value: s[key]}));
@@ -210,64 +212,41 @@
       <span class="rank-value">${SD.fmtPct(r.meanWeeklyReturn)}<br><span style="color:var(--text-muted);font-size:10px">±${SD.fmtPct(r.stdevWeeklyReturn)}</span></span>`);
   }
 
-  function renderSectorComp(pool) {
-    destroyChart("chart-sectorcomp");
+  function renderSectorList(pool) {
     const sectors = Array.from(new Set([...pool.spViewEligible, ...pool.ndxViewEligible].map(s => s.sector))).sort();
-    const spCounts = sectors.map(sec => pool.spViewEligible.filter(s => s.sector === sec).length);
-    const ndxCounts = sectors.map(sec => pool.ndxViewEligible.filter(s => s.sector === sec).length);
+    const spRows = sectors.map(sec => {
+      const n = pool.spViewEligible.filter(s => s.sector === sec).length;
+      return { ticker: sec, company: `${n} ticker${n===1?"":"s"}`, _barValue: n, _value: n };
+    }).filter(r => r._value > 0).sort((a,b) => b._value - a._value);
+    const ndxRows = sectors.map(sec => {
+      const n = pool.ndxViewEligible.filter(s => s.sector === sec).length;
+      return { ticker: sec, company: `${n} ticker${n===1?"":"s"}`, _barValue: n, _value: n };
+    }).filter(r => r._value > 0).sort((a,b) => b._value - a._value);
 
-    charts["chart-sectorcomp"] = new Chart($("chart-sectorcomp"), {
-      type: "bar",
-      data: { labels: sectors, datasets: [
-        { label: "S&P 500", data: spCounts, backgroundColor: COLORS.sp.line, borderRadius: 3 },
-        { label: "Nasdaq 100", data: ndxCounts, backgroundColor: COLORS.ndx.line, borderRadius: 3 }
-      ]},
-      options: {
-        indexAxis: "y", responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
-          tooltip: { callbacks: { label: ctx => `${ctx.dataset.label} ${ctx.label}: ${ctx.raw} tickers` } }
-        },
-        scales: {
-          x: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 9 } } },
-          y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 10.5 } } }
-        },
-        onClick: (evt, elements) => {
-          if (!elements.length) return;
-          els.sectorFilter.value = sectors[elements[0].index];
-          renderOverview();
-        }
-      }
-    });
+    renderRankColumns("list-sectorcomp", spRows, ndxRows, (r, maxAbs) => `
+      <span class="rank-bars"><span class="mini-bar-track"><span class="mini-bar-fill" style="width:${r._value/maxAbs*100}%;background:${COLORS.axis}"></span></span></span>
+      <span class="rank-value">${r._value}</span>`,
+      (side, sector) => { els.sectorFilter.value = sector; renderOverview(); });
   }
 
-  function renderOutperformance(pool, f) {
-    destroyChart("chart-outperformance");
+  function renderOutperformanceList(pool, f) {
     const key = f.measure;
     const measureInfo = MEASURES[key];
     const avg = arr => arr.length ? arr.reduce((a,b) => a + b[key], 0) / arr.length : 0;
 
-    charts["chart-outperformance"] = new Chart($("chart-outperformance"), {
-      type: "bar",
-      data: {
-        labels: ["S&P 500", "Nasdaq 100"],
-        datasets: [
-          { label: "Top 25 Consistent (avg)", data: [avg(pool.spTop25), avg(pool.ndxTop25)], backgroundColor: [COLORS.sp.line, COLORS.ndx.line], borderRadius: 4 },
-          { label: "Full Eligible Pool (avg)", data: [avg(pool.spPool), avg(pool.ndxPool)], backgroundColor: [COLORS.sp.soft, COLORS.ndx.soft], borderRadius: 4 }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
-          tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${measureInfo.fmt(ctx.raw)}` } }
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 12 } } },
-          y: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 9 } } }
-        }
-      }
-    });
+    const spRows = [
+      { ticker: "Top 25 Consistent", company: `${pool.spTop25.length} tickers`, _value: avg(pool.spTop25) },
+      { ticker: "Full Eligible Pool", company: `${pool.spPool.length} tickers`, _value: avg(pool.spPool) }
+    ];
+    const ndxRows = [
+      { ticker: "Top 25 Consistent", company: `${pool.ndxTop25.length} tickers`, _value: avg(pool.ndxTop25) },
+      { ticker: "Full Eligible Pool", company: `${pool.ndxPool.length} tickers`, _value: avg(pool.ndxPool) }
+    ];
+    renderRankColumns("list-outperformance", spRows, ndxRows, (r, maxAbs) => `
+      <span class="rank-bars"><span class="mini-bar-track"><span class="mini-bar-fill" style="width:${Math.abs(r._value)/maxAbs*100}%;background:${r._value>=0?COLORS.good:COLORS.critical}"></span></span></span>
+      <span class="rank-value">${measureInfo.fmt(r._value)}</span>`,
+      (side, label) => { els.viewFilter.value = label === "Top 25 Consistent" ? "top25" : "eligible"; renderOverview(); }
+    );
   }
 
   function renderTable(pool, f) {
@@ -330,8 +309,8 @@
     renderStatTiles(pool);
     renderLeaderboard(pool, f);
     renderRiskReturnList(pool);
-    renderSectorComp(pool);
-    renderOutperformance(pool, f);
+    renderSectorList(pool);
+    renderOutperformanceList(pool, f);
     renderTable(pool, f);
   }
 
