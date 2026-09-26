@@ -214,19 +214,21 @@
 
   function renderSectorList(pool) {
     const sectors = Array.from(new Set([...pool.spViewEligible, ...pool.ndxViewEligible].map(s => s.sector))).sort();
-    const spRows = sectors.map(sec => {
-      const n = pool.spViewEligible.filter(s => s.sector === sec).length;
-      return { ticker: sec, company: `${n} ticker${n===1?"":"s"}`, _barValue: n, _value: n };
-    }).filter(r => r._value > 0).sort((a,b) => b._value - a._value);
-    const ndxRows = sectors.map(sec => {
-      const n = pool.ndxViewEligible.filter(s => s.sector === sec).length;
-      return { ticker: sec, company: `${n} ticker${n===1?"":"s"}`, _barValue: n, _value: n };
-    }).filter(r => r._value > 0).sort((a,b) => b._value - a._value);
 
-    renderRankColumns("list-sectorcomp", spRows, ndxRows, (r, maxAbs) => `
-      <span class="rank-bars"><span class="mini-bar-track"><span class="mini-bar-fill" style="width:${r._value/maxAbs*100}%;background:${COLORS.axis}"></span></span></span>
-      <span class="rank-value">${r._value}</span>`,
-      (side, sector) => { els.sectorFilter.value = sector; renderOverview(); });
+    function chips(side, eligibleArr) {
+      const rows = sectors.map(sec => ({ sec, n: eligibleArr.filter(s => s.sector === sec).length }))
+        .filter(r => r.n > 0).sort((a,b) => b.n - a.n);
+      const chipsHtml = rows.map(r => `<span class="chip" data-sector="${r.sec}">${r.sec} <b>${r.n}</b></span>`).join("");
+      return `<div class="rank-col--${side}">
+        <div class="rank-col__head rank-col--${side}"><span class="dot"></span>${side === "sp" ? "S&P 500" : "Nasdaq 100"}</div>
+        <div class="chip-row">${chipsHtml || '<span style="color:var(--text-muted);font-size:12px;">No matches</span>'}</div>
+      </div>`;
+    }
+
+    $("list-sectorcomp").innerHTML = chips("sp", pool.spViewEligible) + chips("ndx", pool.ndxViewEligible);
+    $("list-sectorcomp").querySelectorAll(".chip").forEach(chip => {
+      chip.addEventListener("click", () => { els.sectorFilter.value = chip.dataset.sector; renderOverview(); });
+    });
   }
 
   function renderOutperformanceList(pool, f) {
@@ -234,19 +236,24 @@
     const measureInfo = MEASURES[key];
     const avg = arr => arr.length ? arr.reduce((a,b) => a + b[key], 0) / arr.length : 0;
 
-    const spRows = [
-      { ticker: "Top 25 Consistent", company: `${pool.spTop25.length} tickers`, _value: avg(pool.spTop25) },
-      { ticker: "Full Eligible Pool", company: `${pool.spPool.length} tickers`, _value: avg(pool.spPool) }
-    ];
-    const ndxRows = [
-      { ticker: "Top 25 Consistent", company: `${pool.ndxTop25.length} tickers`, _value: avg(pool.ndxTop25) },
-      { ticker: "Full Eligible Pool", company: `${pool.ndxPool.length} tickers`, _value: avg(pool.ndxPool) }
-    ];
-    renderRankColumns("list-outperformance", spRows, ndxRows, (r, maxAbs) => `
-      <span class="rank-bars"><span class="mini-bar-track"><span class="mini-bar-fill" style="width:${Math.abs(r._value)/maxAbs*100}%;background:${r._value>=0?COLORS.good:COLORS.critical}"></span></span></span>
-      <span class="rank-value">${measureInfo.fmt(r._value)}</span>`,
-      (side, label) => { els.viewFilter.value = label === "Top 25 Consistent" ? "top25" : "eligible"; renderOverview(); }
-    );
+    function line(side, label, top25, full) {
+      const top25Avg = avg(top25), fullAvg = avg(full);
+      const mult = fullAvg !== 0 ? (top25Avg / fullAvg) : 0;
+      return `<div class="rank-col--${side}">
+        <div class="rank-col__head rank-col--${side}"><span class="dot"></span>${label}</div>
+        <div class="compare-compact">
+          <span class="seg" data-view="top25">Top 25 (${top25.length})<b>${measureInfo.fmt(top25Avg)}</b></span>
+          <span class="seg" data-view="eligible">Full pool (${full.length})<b>${measureInfo.fmt(fullAvg)}</b></span>
+          ${isFinite(mult) && fullAvg !== 0 ? `<span class="mult">${mult.toFixed(1)}×</span>` : ""}
+        </div>
+      </div>`;
+    }
+
+    $("list-outperformance").innerHTML =
+      line("sp", "S&P 500", pool.spTop25, pool.spPool) + line("ndx", "Nasdaq 100", pool.ndxTop25, pool.ndxPool);
+    $("list-outperformance").querySelectorAll(".seg").forEach(seg => {
+      seg.addEventListener("click", () => { els.viewFilter.value = seg.dataset.view; renderOverview(); });
+    });
   }
 
   function renderTable(pool, f) {
