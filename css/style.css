@@ -378,8 +378,8 @@ a { color: inherit; }
   width: 18px; flex-shrink: 0;
   font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); text-align: right;
 }
-.rank-row .rank-name { width: 122px; flex-shrink: 0; overflow: hidden; }
-.rank-row .rank-name .t { font-family: var(--font-mono); font-weight: 700; font-size: 12.5px; }
+.rank-row .rank-name { width: 128px; flex-shrink: 0; min-width: 0; }
+.rank-row .rank-name .t { font-family: var(--font-mono); font-weight: 700; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .rank-row .rank-name .c { font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .rank-row .rank-bars { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .rank-row .mini-bar-track { position: relative; height: 7px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
