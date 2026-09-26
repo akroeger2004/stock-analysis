@@ -227,45 +227,69 @@
       <span class="rank-value">${SD.fmtPct(r.meanWeeklyReturn)}<br><span style="color:var(--text-muted);font-size:10px">±${SD.fmtPct(r.stdevWeeklyReturn)}</span></span>`);
   }
 
+  // Each chip's fill width is proportional to its count (relative to the
+  // larger of the two columns) — a compact chart mark, not just a label.
   function renderSectorList(pool) {
     const sectors = Array.from(new Set([...pool.spViewEligible, ...pool.ndxViewEligible].map(s => s.sector))).sort();
 
-    function chips(side, eligibleArr) {
-      const rows = sectors.map(sec => ({ sec, n: eligibleArr.filter(s => s.sector === sec).length }))
+    function buildRows(eligibleArr) {
+      return sectors.map(sec => ({ sec, n: eligibleArr.filter(s => s.sector === sec).length }))
         .filter(r => r.n > 0).sort((a,b) => b.n - a.n);
-      const chipsHtml = rows.map(r => `<span class="chip" data-sector="${r.sec}">${r.sec} <b>${r.n}</b></span>`).join("");
+    }
+    const spRows = buildRows(pool.spViewEligible);
+    const ndxRows = buildRows(pool.ndxViewEligible);
+    const maxN = Math.max(1, ...spRows.map(r => r.n), ...ndxRows.map(r => r.n));
+
+    function chips(side, rows) {
+      const chipsHtml = rows.map(r => {
+        const pct = (r.n / maxN * 100).toFixed(0);
+        return `<span class="chip" data-sector="${r.sec}" style="background:linear-gradient(90deg, rgba(255,255,255,0.18) ${pct}%, rgba(255,255,255,0.045) ${pct}%)">${r.sec} <b>${r.n}</b></span>`;
+      }).join("");
       return `<div class="rank-col--${side}">
         <div class="rank-col__head rank-col--${side}"><span class="dot"></span>${side === "sp" ? "S&P 500" : "Nasdaq 100"}</div>
         <div class="chip-row">${chipsHtml || '<span style="color:var(--text-muted);font-size:12px;">No matches</span>'}</div>
       </div>`;
     }
 
-    $("list-sectorcomp").innerHTML = chips("sp", pool.spViewEligible) + chips("ndx", pool.ndxViewEligible);
+    $("list-sectorcomp").innerHTML = chips("sp", spRows) + chips("ndx", ndxRows);
     $("list-sectorcomp").querySelectorAll(".chip").forEach(chip => {
       chip.addEventListener("click", () => { els.sectorFilter.value = chip.dataset.sector; renderOverview(); });
     });
   }
 
+  // Each pill's fill width is proportional to its value (relative to the
+  // largest magnitude across all four numbers), colored by sign — same
+  // "compact bar chart" treatment as the chips above.
   function renderOutperformanceList(pool, f) {
     const key = f.measure;
     const measureInfo = MEASURES[key];
     const avg = arr => arr.length ? arr.reduce((a,b) => a + b[key], 0) / arr.length : 0;
 
-    function line(side, label, top25, full) {
-      const top25Avg = avg(top25), fullAvg = avg(full);
+    const spTop25Avg = avg(pool.spTop25), spFullAvg = avg(pool.spPool);
+    const ndxTop25Avg = avg(pool.ndxTop25), ndxFullAvg = avg(pool.ndxPool);
+    const maxAbs = Math.max(1e-9, Math.abs(spTop25Avg), Math.abs(spFullAvg), Math.abs(ndxTop25Avg), Math.abs(ndxFullAvg));
+
+    function seg(view, label, count, val) {
+      const pct = (Math.abs(val) / maxAbs * 100).toFixed(0);
+      const fill = val >= 0 ? "rgba(12,163,12,0.3)" : "rgba(230,103,103,0.3)";
+      return `<span class="seg" data-view="${view}" style="background:linear-gradient(90deg, ${fill} ${pct}%, rgba(255,255,255,0.03) ${pct}%)">${label} (${count})<b>${measureInfo.fmt(val)}</b></span>`;
+    }
+
+    function line(side, label, top25Avg, top25Count, fullAvg, fullCount) {
       const mult = fullAvg !== 0 ? (top25Avg / fullAvg) : 0;
       return `<div class="rank-col--${side}">
         <div class="rank-col__head rank-col--${side}"><span class="dot"></span>${label}</div>
         <div class="compare-compact">
-          <span class="seg" data-view="top25">Top 25 (${top25.length})<b>${measureInfo.fmt(top25Avg)}</b></span>
-          <span class="seg" data-view="eligible">Full pool (${full.length})<b>${measureInfo.fmt(fullAvg)}</b></span>
+          ${seg("top25", "Top 25", top25Count, top25Avg)}
+          ${seg("eligible", "Full pool", fullCount, fullAvg)}
           ${isFinite(mult) && fullAvg !== 0 ? `<span class="mult">${mult.toFixed(1)}×</span>` : ""}
         </div>
       </div>`;
     }
 
     $("list-outperformance").innerHTML =
-      line("sp", "S&P 500", pool.spTop25, pool.spPool) + line("ndx", "Nasdaq 100", pool.ndxTop25, pool.ndxPool);
+      line("sp", "S&P 500", spTop25Avg, pool.spTop25.length, spFullAvg, pool.spPool.length) +
+      line("ndx", "Nasdaq 100", ndxTop25Avg, pool.ndxTop25.length, ndxFullAvg, pool.ndxPool.length);
     $("list-outperformance").querySelectorAll(".seg").forEach(seg => {
       seg.addEventListener("click", () => { els.viewFilter.value = seg.dataset.view; renderOverview(); });
     });
