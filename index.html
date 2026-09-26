@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report — Stock Analysis</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .findings { display: flex; flex-direction: column; gap: 30px; }
+  .finding { padding: 26px 28px; }
+  .finding h2 { font-size: 20px; margin: 0 0 12px; letter-spacing: -0.01em; }
+  .finding p { color: var(--text-secondary); line-height: 1.65; margin: 0 0 12px; max-width: 780px; }
+  .finding p:last-of-type { margin-bottom: 20px; }
+  .finding .chart-card { margin-bottom: 0; }
+  .finding .chart-card canvas { width: 100%; }
+  .headline-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 34px;
+  }
+  @media (max-width: 900px) { .headline-grid { grid-template-columns: repeat(2, 1fr); } }
+  .headline-tile { padding: 18px 16px; text-align: left; }
+  .headline-tile .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; }
+  .headline-tile .value { font-family: var(--font-mono); font-size: 26px; font-weight: 800; line-height: 1; }
+  .summary-block { padding: 24px 28px; margin-bottom: 34px; }
+  .summary-block p { color: var(--text-secondary); line-height: 1.7; margin: 0; max-width: 900px; }
+  .closing { padding: 28px; margin-top: 10px; }
+  .closing h2 { font-size: 20px; margin: 0 0 14px; }
+  .closing h3 { font-size: 14px; color: var(--text-secondary); margin: 22px 0 8px; }
+  .closing p, .closing li { color: var(--text-secondary); line-height: 1.65; }
+  .closing ul { margin: 0; padding-left: 20px; }
+  .closing code { font-family: var(--font-mono); background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+  .byline { color: var(--text-muted); font-size: 14px; margin-top: -2px; margin-bottom: 18px; }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="site-nav__brand" href="index.html">
+    <span class="dot"></span>
+    Consistent Gainers <small>S&amp;P 500 vs Nasdaq 100</small>
+  </a>
+  <div class="site-nav__links">
+    <a href="index.html" class="active">Report</a>
+    <a href="dashboard.html">Dashboard</a>
+  </div>
+</nav>
+
+<div class="ticker-tape">
+  <div class="ticker-tape__track" id="tape-track-static">
+    <span class="ticker-tape__item up"><b>FIX</b>▲ +2,140.0%</span>
+    <span class="ticker-tape__item up"><b>MU</b>▲ +1,425.4%</span>
+    <span class="ticker-tape__item up"><b>BE</b>▲ +1,463.4%</span>
+    <span class="ticker-tape__item up"><b>STX</b>▲ +986.2%</span>
+    <span class="ticker-tape__item up"><b>NVDA</b>▲ +985.1%</span>
+    <span class="ticker-tape__item up"><b>SMCI</b>▲ +1,058.0%</span>
+    <span class="ticker-tape__item up"><b>WDC</b>▲ +958.6%</span>
+    <span class="ticker-tape__item down"><b>FISV</b>▼ big single-week drop</span>
+    <span class="ticker-tape__item up"><b>INSM</b>▲ big single-week spike</span>
+    <span class="ticker-tape__item up"><b>FIX</b>▲ +2,140.0%</span>
+    <span class="ticker-tape__item up"><b>MU</b>▲ +1,425.4%</span>
+    <span class="ticker-tape__item up"><b>BE</b>▲ +1,463.4%</span>
+    <span class="ticker-tape__item up"><b>STX</b>▲ +986.2%</span>
+    <span class="ticker-tape__item up"><b>NVDA</b>▲ +985.1%</span>
+    <span class="ticker-tape__item up"><b>SMCI</b>▲ +1,058.0%</span>
+    <span class="ticker-tape__item up"><b>WDC</b>▲ +958.6%</span>
+    <span class="ticker-tape__item down"><b>FISV</b>▼ big single-week drop</span>
+    <span class="ticker-tape__item up"><b>INSM</b>▲ big single-week spike</span>
+  </div>
+</div>
+
+<div class="page">
+
+  <div class="page-head">
+    <h1>Consistent Gainers: S&amp;P 500 vs. Nasdaq 100</h1>
+    <div class="byline">Andrew Kroeger</div>
+    <p>
+      This report ranks every S&amp;P 500 and Nasdaq 100 company on how <em>consistently</em> its stock
+      price gained over the past five years — not just how much it gained, but how smooth the ride was —
+      using a risk-adjusted score (average weekly return divided by its volatility) computed from 133,557
+      weekly price observations across 517 tickers. The headline surprise: although 87 companies belong to
+      both indices, only 5 tickers show up on both indices' top-25-most-consistent lists. The two indices
+      reward very different kinds of "steady winner," and the full breakdown — case studies, sector splits,
+      and the tickers that couldn't be fairly judged at all — is below.
+    </p>
+  </div>
+
+  <div class="headline-grid">
+    <div class="headline-tile card">
+      <div class="label">Tickers Tracked</div>
+      <div class="value">517</div>
+    </div>
+    <div class="headline-tile card">
+      <div class="label">Weekly Observations</div>
+      <div class="value">133,557</div>
+    </div>
+    <div class="headline-tile card">
+      <div class="label">Scored for Consistency</div>
+      <div class="value">505</div>
+    </div>
+    <div class="headline-tile card">
+      <div class="label">Overlap, Top-25 Lists</div>
+      <div class="value">5 <span style="font-size:14px;color:var(--text-muted)">of 25</span></div>
+    </div>
+    <div class="headline-tile card">
+      <div class="label">Top Consistent Gainer (5yr)</div>
+      <div class="value up">+2,140%</div>
+    </div>
+  </div>
+
+  <div class="findings">
+
+    <section class="finding card">
+      <h2>1. Being in Both Indices Doesn't Mean Being Consistent in Both</h2>
+      <p>
+        Of the 101 Nasdaq 100 companies, 87 are also S&amp;P 500 members — the two indices overlap
+        heavily at the constituent level. But when each index is ranked independently on risk-adjusted
+        consistency (mean weekly return ÷ volatility of weekly return) and the top 25 most consistent
+        gainers are pulled from each, only <strong>5 tickers land on both lists</strong>: MU, STX, NVDA,
+        WDC, and AVGO — all storage or semiconductor names.
+      </p>
+      <p>
+        In other words, 20 of the S&amp;P 500's most consistent gainers and 20 of the Nasdaq 100's are
+        completely different companies, even though the underlying universes mostly overlap. "Consistent"
+        is a much narrower club than "shared index membership."
+      </p>
+      <div class="chart-card"><canvas id="chart-overlap" height="140"></canvas></div>
+    </section>
+
+    <section class="finding card">
+      <h2>2. The S&amp;P 500's Most Consistent Stock Isn't a Tech Giant — It's an HVAC Contractor</h2>
+      <p>
+        <strong>Comfort Systems USA (FIX)</strong>, a mechanical/HVAC contractor, ranks #1 for consistency
+        among all 493 eligible S&amp;P 500 tickers — ahead of every mega-cap tech name — with a
+        risk-adjusted score of 0.231. It also happens to have the single highest 5-year cumulative return
+        in the entire S&amp;P 500 pool: <strong>+2,140%</strong>, climbing from about $74 to roughly $1,650
+        a share, with weekly volatility (5.9%) well below the S&amp;P top-25 average (5.5%–6% range for peers).
+      </p>
+      <p>
+        FIX's business — data-center and industrial HVAC installation — rode the AI infrastructure
+        buildout without carrying a traditional "AI stock's" volatility, which is exactly what a
+        risk-adjusted score is built to reward.
+      </p>
+      <div class="chart-card"><canvas id="chart-fix" height="150"></canvas></div>
+    </section>
+
+    <section class="finding card">
+      <h2>3. Micron Is the Only True Double Champion</h2>
+      <p>
+        <strong>Micron Technology (MU)</strong> is the single most consistent gainer in the Nasdaq 100
+        (score 0.174) and also ranks #6 out of 493 in the S&amp;P 500 — making it the strongest performer
+        that is genuinely elite in <em>both</em> rankings at once, not just present in both. Its five-year
+        cumulative return of +1,425% came with 7.7% weekly volatility, calmer than fellow memory/storage
+        names Seagate (STX) and Western Digital (WDC) that round out the cross-index overlap.
+      </p>
+      <p>
+        That the only two-index "champion" and 4 of the other 5 overlap tickers are memory, storage, or
+        chip names is itself a finding: the AI-driven memory/storage cycle of 2023–2026 was steady enough,
+        for these particular companies, to read as "consistent" rather than merely "volatile and lucky."
+      </p>
+      <div class="chart-card"><canvas id="chart-mu" height="150"></canvas></div>
+    </section>
+
+    <section class="finding card">
+      <h2>4. Nasdaq's Consistent Winners Cluster in Tech; the S&amp;P 500's Are Spread Out</h2>
+      <p>
+        14 of the Nasdaq 100's top 25 most consistent gainers (56%) are classified Information Technology,
+        with the rest scattered across Communication Services, Consumer Discretionary/Staples, Health Care,
+        Utilities, and Industrials. The S&amp;P 500's top 25 is more balanced: 11 Information Technology,
+        but also 6 Industrials, 3 Energy, and 3 Health Care names, plus one each in Utilities and Financials.
+      </p>
+      <p>
+        A reader hunting for "safe, steady growth" in the S&amp;P 500 has real options outside tech —
+        Comfort Systems (Industrials), McKesson and Cardinal Health (Health Care), Marathon Petroleum and
+        Targa Resources (Energy) all made the cut. In the Nasdaq 100, steady growth has been overwhelmingly
+        a tech-sector story.
+      </p>
+      <div class="chart-card"><canvas id="chart-sector" height="230"></canvas></div>
+    </section>
+
+    <section class="finding card">
+      <h2>5. Huge Gains Don't Guarantee a Spot in the Top 25</h2>
+      <p>
+        Bloom Energy (BE) gained <strong>+1,463%</strong> over five years — the second-highest cumulative
+        return in the entire S&amp;P 500 pool — yet its weekly volatility (12.3%) is more than double FIX's,
+        dropping it to consistency rank <strong>#29 of 493</strong>, just outside the top 25. Supermicro
+        (SMCI) tells the same story: +1,058% return, but 12.9% volatility drops it to rank #36.
+      </p>
+      <p>
+        This is the whole point of scoring on a risk-adjusted basis rather than raw return: a stock that
+        doubles one quarter and gives half of it back the next isn't "consistent," even if the multi-year
+        total looks spectacular. FIX and MU post smaller (though still huge) headline numbers with far
+        less turbulence along the way, which is why they lead their indices instead of BE or SMCI.
+      </p>
+      <div class="chart-card"><canvas id="chart-consistency-scatter" height="230"></canvas></div>
+    </section>
+
+    <section class="finding card">
+      <h2>6. Nasdaq 100 Stocks Are Structurally Choppier Than S&amp;P 500 Stocks</h2>
+      <p>
+        Averaged across every eligible ticker (not just the top 25), the Nasdaq 100 pool's mean weekly
+        volatility is <strong>5.31%</strong>, versus <strong>4.46%</strong> for the S&amp;P 500 pool — the
+        Nasdaq 100's broader, tech-and-growth-heavy makeup makes it choppier week to week even before
+        looking at who "wins." That gap persists among the top-25 lists too (5.82% vs. 5.48%), so Nasdaq's
+        most consistent stocks are still, on average, more volatile week-to-week than the S&amp;P 500's most
+        consistent stocks.
+      </p>
+      <div class="chart-card"><canvas id="chart-volatility" height="170"></canvas></div>
+    </section>
+
+    <section class="finding card">
+      <h2>7. Consistency Actually Pays: the Top 25 Crushed the Broader Market</h2>
+      <p>
+        The 25 most consistent S&amp;P 500 gainers averaged a <strong>+697%</strong> cumulative return over
+        five years, versus an average of just <strong>+88%</strong> across all 493 eligible S&amp;P 500
+        tickers. The pattern repeats in the Nasdaq 100: the top 25 averaged <strong>+420%</strong> versus
+        <strong>+136%</strong> across all 98 eligible tickers.
+      </p>
+      <p>
+        Ranking on risk-adjusted consistency wasn't just a way to find "boring" stocks — in this five-year
+        window, the steadiest climbers also happened to be dramatically bigger winners than the typical
+        stock in their index, not smaller ones.
+      </p>
+      <div class="chart-card"><canvas id="chart-outperformance" height="200"></canvas></div>
+    </section>
+
+    <section class="finding card">
+      <h2>8. A Dozen Tickers Couldn't Be Fairly Judged at All</h2>
+      <p>
+        12 of the 517 tickers were excluded from every ranking because they lack enough trading history to
+        compare on equal footing (fewer than 240 of the possible 262 weeks). Most are 2023–2026 corporate
+        spinoffs (GE Vernova, Solventum, Veralto, Kenvue, GE HealthCare) or recent IPOs/relistings (Reddit,
+        Arm Holdings, Qnity Electronics). Electronic Arts (EA) returned essentially no historical data at
+        all — consistent with its 2026 going-private buyout, which triggers delisting from public exchanges.
+      </p>
+      <p>
+        None of these were arbitrarily dropped for looking bad — they simply haven't existed as tradeable,
+        continuously-listed stocks long enough for a 5-year consistency score to mean anything.
+      </p>
+      <div class="chart-card"><canvas id="chart-excluded" height="230"></canvas></div>
+    </section>
+
+    <section class="finding card">
+      <h2>9. The Best and Worst Single Weeks in Five Years</h2>
+      <p>
+        Across all 133,557 weekly observations, the single best week belonged to <strong>Insmed (INSM)</strong>,
+        up <strong>+150%</strong> the week of May 27, 2024, on strong Phase 3 clinical trial results for its
+        lead drug — and the stock held those gains afterward rather than round-tripping, confirming it was a
+        real repricing, not a data glitch. The worst single week belonged to <strong>Fiserv (FISV)</strong>,
+        down <strong>−47%</strong> the week of October 27, 2025, after a guidance collapse; that stock also
+        stayed down rather than bouncing back.
+      </p>
+      <p>
+        Both are useful context for the risk-adjusted scoring used throughout this report: a single week like
+        either of these would overwhelm a plain average, which is exactly why "consistent" is measured
+        relative to a stock's own volatility rather than by its raw return alone.
+      </p>
+      <div class="chart-card"><canvas id="chart-extremes" height="170"></canvas></div>
+    </section>
+
+  </div>
+
+  <section class="closing card">
+    <h2>About This Data</h2>
+    <p>
+      <strong>Source.</strong> Constituent lists for the S&amp;P 500 (503 tickers) and Nasdaq 100
+      (101 tickers) were pulled from public GitHub datasets mirroring each index's official membership.
+      Weekly price history (open, high, low, close, volume) for all 517 unique tickers was fetched directly
+      from Yahoo Finance's public historical-chart API for the trailing 5 years (up to 262 weeks per ticker,
+      ending September 2026). Prices are split-adjusted as provided by that API — verified directly against
+      Nvidia's 10-for-1 split in June 2024, which shows no discontinuity in the series.
+    </p>
+    <p>
+      <strong>One row</strong> is one ticker in one calendar week. A ticker can carry an
+      <code>index_membership</code> of "S&amp;P 500," "Nasdaq 100," or "Both," so the same physical company
+      contributes to whichever index ranking(s) it actually belongs to.
+    </p>
+    <h3>Rows dropped, and why</h3>
+    <ul>
+      <li>No price rows are silently dropped from the raw fetch — all 133,557 successfully-returned
+        weekly bars for all 517 tickers are kept in <code>data/sp500_nasdaq100_weekly_prices.csv</code>.</li>
+      <li>12 tickers are excluded from every <em>consistency ranking</em> (not from the raw data file) for
+        having fewer than 240 of the possible 262 weeks of history — about 91.6% coverage — because a
+        5-year "consistency" comparison isn't meaningful for a stock that's only existed publicly for a
+        fraction of that window. See Finding 8 for the full list.</li>
+      <li>14 tickers that are Nasdaq-100-only (not also S&amp;P 500 members) originally carried a
+        finer-grained, inconsistent sector taxonomy from their source list (e.g. "Biotechnology" or
+        "Computer Software" used as if it were a top-level sector). These were corrected to the same
+        11-category GICS sector standard used everywhere else in the dataset (e.g. Alnylam Pharmaceuticals:
+        "Biotechnology" → "Health Care"), so every sector-based chart and filter compares like with like.</li>
+    </ul>
+    <h3>How every number is computed</h3>
+    <ul>
+      <li><strong>Weekly return</strong> = (this week's close − last week's close) ÷ last week's close, for
+        that ticker. The first available week for each ticker has no return (no prior week to compare to).</li>
+      <li><strong>Risk-adjusted consistency score</strong> = mean weekly return ÷ standard deviation of weekly
+        return, over whichever period is in view. Higher means steadier gains relative to how much the stock
+        bounces around; it is not annualized or compared against a market benchmark.</li>
+      <li><strong>Cumulative return</strong> = (last available close − first available close) ÷ first
+        available close, over the period in view.</li>
+      <li><strong>"Top 25 most consistent"</strong> = the 25 highest risk-adjusted scores among eligible
+        tickers (≥240 weeks of history) within that index's membership pool (S&amp;P 500 pool = "S&amp;P 500"
+        + "Both"; Nasdaq 100 pool = "Nasdaq 100" + "Both").</li>
+      <li>All averages reported (e.g. "avg cumulative return," "avg volatility") are simple, equal-weighted
+        means across the tickers in the stated group — no market-cap weighting is applied anywhere in this
+        report or the dashboard.</li>
+    </ul>
+  </section>
+
+  <footer class="site-footer">Data: Yahoo Finance public chart API, weekly bars, 2021–2026 · S&amp;P 500 &amp; Nasdaq 100 constituent lists via public GitHub datasets</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="js/report.js"></script>
+</body>
+</html>
