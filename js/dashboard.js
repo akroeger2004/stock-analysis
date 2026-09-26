@@ -325,24 +325,35 @@
 
   const explorer = { side: "sp", ticker: null, rangeWeeks: 262, compareTicker: null };
 
-  function explorerPool(side) {
+  // Full index pool, sorted by consistency score — NOT sliced to 25, so a
+  // ticker's true rank (used both for search results and the detail stat
+  // tile) is always relative to the whole pool, not just the top 25.
+  function explorerFullPool(side) {
     const { stats } = SD.computeStats({ tickerFilter: m => side === "sp" ? isSpMember(m.indexMembership) : isNdxMember(m.indexMembership) });
-    return stats.filter(s => s.eligible).sort((a,b) => b.riskAdjustedScore - a.riskAdjustedScore).slice(0, 25);
+    return stats.filter(s => s.eligible).sort((a,b) => b.riskAdjustedScore - a.riskAdjustedScore);
   }
 
-  function renderSymbolList() {
-    const pool = explorerPool(explorer.side);
-    const q = $("explorerSearch").value.trim().toUpperCase();
-    const filtered = q ? pool.filter(s => s.ticker.includes(q) || (s.company||"").toUpperCase().includes(q)) : pool;
+  const SEARCH_RESULTS_CAP = 50;
 
-    if (!explorer.ticker || !filtered.some(s => s.ticker === explorer.ticker)) {
-      explorer.ticker = filtered.length ? filtered[0].ticker : null;
+  function renderSymbolList() {
+    const fullPool = explorerFullPool(explorer.side).map((s, i) => ({ ...s, rank: i + 1 }));
+    const q = $("explorerSearch").value.trim().toUpperCase();
+
+    // No search: the fast, focused default (Top 25). With a search term:
+    // reach across the whole index, not just the top 25, since the reader
+    // is now looking for a specific company rather than browsing leaders.
+    const displayed = q
+      ? fullPool.filter(s => s.ticker.includes(q) || (s.company||"").toUpperCase().includes(q)).slice(0, SEARCH_RESULTS_CAP)
+      : fullPool.slice(0, 25);
+
+    if (!explorer.ticker || !displayed.some(s => s.ticker === explorer.ticker)) {
+      explorer.ticker = displayed.length ? displayed[0].ticker : null;
     }
 
-    $("symbolList").innerHTML = filtered.map((s, i) => `
+    $("symbolList").innerHTML = displayed.map(s => `
       <div class="symbol-row ${s.ticker === explorer.ticker ? 'selected' : ''}" data-ticker="${s.ticker}">
         <span><span class="t">${s.ticker}</span><br><span class="c">${s.company}</span></span>
-        <span class="r">#${i+1}</span>
+        <span class="r">#${s.rank}</span>
       </div>`).join("");
 
     $("symbolList").querySelectorAll(".symbol-row").forEach(row => {
@@ -402,14 +413,14 @@
     $("ex-sub").innerHTML = pills.map(([c,l]) => `<span class="pill ${c}">${l}</span>`).join("") +
       `${meta.sector} · ${meta.subIndustry || ""}`;
 
-    const pool = explorerPool(explorer.side);
+    const pool = explorerFullPool(explorer.side);
     const rank = pool.findIndex(s => s.ticker === ticker) + 1;
 
     $("ex-stats").innerHTML = `
       <div class="stat-tile"><div class="label">Weeks shown</div><div class="value">${SD.fmtInt(series.length)}</div></div>
       <div class="stat-tile"><div class="label">Return (range)</div><div class="value ${cum>=0?'up':'down'}">${SD.fmtPct(cum,1)}</div></div>
       <div class="stat-tile"><div class="label">Consistency score</div><div class="value">${SD.fmtNum(score)}</div></div>
-      <div class="stat-tile"><div class="label">Top-25 rank</div><div class="value">${rank ? "#"+rank : "—"} <span style="font-size:12px;color:var(--text-muted)">of 25</span></div></div>
+      <div class="stat-tile"><div class="label">Consistency rank</div><div class="value">${rank ? "#"+rank : "—"} <span style="font-size:12px;color:var(--text-muted)">of ${pool.length}</span></div></div>
     `;
 
     const movesSorted = series.filter(r => r.weeklyReturn !== null).slice().sort((a,b) => b.weeklyReturn - a.weeklyReturn);
