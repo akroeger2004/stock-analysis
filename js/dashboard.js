@@ -19,15 +19,31 @@
   };
 
   const els = {};
-  const charts = {}; // keyed by chart canvas id
+  const charts = {};
   let allSectors = [];
   let allDates = [];
 
   function $(id) { return document.getElementById(id); }
+  function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+  // ---------------- Tabs ----------------
+
+  function initTabs() {
+    document.querySelectorAll(".dash-tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".dash-tab").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".dash-view").forEach(v => v.classList.remove("active"));
+        btn.classList.add("active");
+        $("view-" + btn.dataset.view).classList.add("active");
+      });
+    });
+  }
+
+  // ---------------- Overview ----------------
 
   function cacheEls() {
     ["fromYear","toYear","sectorFilter","viewFilter","tickerSearch","measureSelect","breakdownSelect",
-     "resetBtn","loadingBanner","overlay","overlayClose"].forEach(id => els[id] = $(id));
+     "resetBtn","loadingBanner"].forEach(id => els[id] = $(id));
   }
 
   function populateControls() {
@@ -63,164 +79,145 @@
     els.viewFilter.value = "top25";
     els.measureSelect.value = "riskAdjustedScore";
     els.breakdownSelect.value = "ticker";
-    closeOverlay();
-    renderAll();
+    renderOverview();
   }
 
-  function poolFilterFor(side) {
-    return meta => side === "sp"
-      ? (meta.indexMembership === "S&P 500" || meta.indexMembership === "Both")
-      : (meta.indexMembership === "Nasdaq 100" || meta.indexMembership === "Both");
-  }
+  function isSpMember(m) { return m === "S&P 500" || m === "Both"; }
+  function isNdxMember(m) { return m === "Nasdaq 100" || m === "Both"; }
 
-  function buildPool(side, f) {
+  // Build one combined view: all 517 tickers (filtered), split into the two
+  // index pools, plus a de-duplicated combined "view" set (Both counts once).
+  function buildCombined(f) {
     const { stats } = SD.computeStats({
-      tickerFilter: poolFilterFor(side),
-      yearFrom: f.yearFrom, yearTo: f.yearTo,
-      sector: f.sector, searchTicker: f.search
+      yearFrom: f.yearFrom, yearTo: f.yearTo, sector: f.sector, searchTicker: f.search
     });
-    const eligible = stats.filter(s => s.eligible);
-    eligible.sort((a, b) => b.riskAdjustedScore - a.riskAdjustedScore);
 
-    let view;
-    if (f.view === "top25") view = eligible.slice(0, 25);
-    else if (f.view === "eligible") view = eligible;
-    else view = stats; // all tickers, incl. ineligible
+    const spPool = stats.filter(s => s.eligible && isSpMember(s.indexMembership))
+      .sort((a,b) => b.riskAdjustedScore - a.riskAdjustedScore);
+    const ndxPool = stats.filter(s => s.eligible && isNdxMember(s.indexMembership))
+      .sort((a,b) => b.riskAdjustedScore - a.riskAdjustedScore);
 
-    // The subset every chart/stat/table renders against, so numbers always agree
-    // with whichever View filter (Top 25 / All Eligible / All Tickers) is selected.
+    const spTop25 = spPool.slice(0, 25);
+    const ndxTop25 = ndxPool.slice(0, 25);
+
+    let viewMap = new Map();
+    if (f.view === "top25") {
+      [...spTop25, ...ndxTop25].forEach(s => viewMap.set(s.ticker, s));
+    } else if (f.view === "eligible") {
+      [...spPool, ...ndxPool].forEach(s => viewMap.set(s.ticker, s));
+    } else {
+      stats.forEach(s => viewMap.set(s.ticker, s));
+    }
+    const view = Array.from(viewMap.values());
     const viewEligible = view.filter(s => s.eligible);
+    // Per-side chart data must come from each side's OWN ranked pool/top25 —
+    // never re-derived from the de-duplicated combined `view`, since a "Both"
+    // ticker that only made the *other* index's top 25 would otherwise get
+    // wrongly counted on this side too.
+    const spViewEligible = f.view === "top25" ? spTop25 : spPool;
+    const ndxViewEligible = f.view === "top25" ? ndxTop25 : ndxPool;
 
-    return { all: stats, eligible, view, viewEligible };
+    const overlapTop25 = spTop25.filter(s => ndxTop25.some(n => n.ticker === s.ticker)).length;
+
+    return { stats, spPool, ndxPool, spTop25, ndxTop25, view, viewEligible, spViewEligible, ndxViewEligible, overlapTop25 };
   }
 
-  function destroyChart(id) {
-    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
-  }
-
-  function renderStatTiles(side, pool, f) {
-    const wrap = $(side + "-stats");
-    const eligible = pool.viewEligible;
-    if (eligible.length === 0) {
+  function renderStatTiles(pool) {
+    const wrap = $("ov-stats");
+    const e = pool.viewEligible;
+    if (e.length === 0) {
       wrap.innerHTML = `<div class="stat-tile"><div class="label">No matches</div><div class="value">—</div></div>`;
       return;
     }
-    const avgReturn = eligible.reduce((a,b) => a + b.meanWeeklyReturn, 0) / eligible.length;
-    const avgScore = eligible.reduce((a,b) => a + b.riskAdjustedScore, 0) / eligible.length;
-    const best = eligible.slice().sort((a,b) => b.riskAdjustedScore - a.riskAdjustedScore)[0];
-    const count = pool.view.length;
-
+    const avgReturn = e.reduce((a,b) => a + b.meanWeeklyReturn, 0) / e.length;
+    const avgScore = e.reduce((a,b) => a + b.riskAdjustedScore, 0) / e.length;
     wrap.innerHTML = `
-      <div class="stat-tile"><div class="label">Tickers in view</div><div class="value">${SD.fmtInt(count)}</div></div>
+      <div class="stat-tile"><div class="label">Tickers in view</div><div class="value">${SD.fmtInt(pool.view.length)}</div></div>
       <div class="stat-tile"><div class="label">Avg weekly return</div><div class="value ${avgReturn>=0?'up':'down'}">${SD.fmtPct(avgReturn)}</div></div>
       <div class="stat-tile"><div class="label">Avg consistency score</div><div class="value">${SD.fmtNum(avgScore)}</div></div>
-      <div class="stat-tile"><div class="label">Top ticker</div><div class="value">${best.ticker}</div></div>
+      <div class="stat-tile"><div class="label">Overlap (S&amp;P ∩ Nasdaq Top 25)</div><div class="value">${pool.overlapTop25} <span style="font-size:12px;color:var(--text-muted)">of 25</span></div></div>
     `;
   }
 
-  function rankingData(side, pool, f) {
+  function renderLeaderboard(pool, f) {
+    destroyChart("chart-leaderboard");
     const key = f.measure;
+    const measureInfo = MEASURES[key];
+    const canvas = $("chart-leaderboard");
+
     if (f.breakdown === "sector") {
-      const bySector = new Map();
-      for (const s of pool.viewEligible) {
-        if (!bySector.has(s.sector)) bySector.set(s.sector, []);
-        bySector.get(s.sector).push(s[key]);
-      }
-      let rows = Array.from(bySector.entries()).map(([sector, vals]) => ({
-        label: sector,
-        value: vals.reduce((a,b) => a+b, 0) / vals.length,
-        ticker: null
-      }));
-      rows.sort((a,b) => b.value - a.value);
-      return rows;
+      const sectors = Array.from(new Set([...pool.spPool, ...pool.ndxPool].map(s => s.sector))).sort();
+      const spAvg = sectors.map(sec => {
+        const vals = pool.spPool.filter(s => s.sector === sec).map(s => s[key]);
+        return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+      });
+      const ndxAvg = sectors.map(sec => {
+        const vals = pool.ndxPool.filter(s => s.sector === sec).map(s => s[key]);
+        return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+      });
+      charts["chart-leaderboard"] = new Chart(canvas, {
+        type: "bar",
+        data: { labels: sectors, datasets: [
+          { label: "S&P 500", data: spAvg, backgroundColor: COLORS.sp.line, borderRadius: 3 },
+          { label: "Nasdaq 100", data: ndxAvg, backgroundColor: COLORS.ndx.line, borderRadius: 3 }
+        ]},
+        options: {
+          indexAxis: "y", responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
+            tooltip: { callbacks: { label: ctx => `${ctx.dataset.label} ${ctx.label}: ${measureInfo.fmt(ctx.raw)}` } }
+          },
+          scales: {
+            x: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 10 } } },
+            y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 10.5 } } }
+          }
+        }
+      });
     } else {
-      let rows = pool.viewEligible.slice().sort((a,b) => b[key] - a[key]).slice(0, 15)
-        .map(s => ({ label: s.ticker, value: s[key], ticker: s.ticker, company: s.company }));
-      return rows;
+      const spTop = pool.spPool.slice().sort((a,b) => b[key]-a[key]).slice(0, 10);
+      const ndxTop = pool.ndxPool.slice().sort((a,b) => b[key]-a[key]).slice(0, 10);
+      const rows = [...spTop.map(s => ({...s, side:"sp"})), ...ndxTop.map(s => ({...s, side:"ndx"}))];
+      charts["chart-leaderboard"] = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: rows.map(r => r.ticker),
+          datasets: [{ data: rows.map(r => r[key]), backgroundColor: rows.map(r => COLORS[r.side].line), borderRadius: 4, barThickness: 12 }]
+        },
+        options: {
+          indexAxis: "y", responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => `${rows[ctx.dataIndex].ticker} — ${rows[ctx.dataIndex].company}: ${measureInfo.fmt(rows[ctx.dataIndex][key])}` } }
+          },
+          scales: {
+            x: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 10 } } },
+            y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 10, family: "monospace" } } }
+          },
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const r = rows[elements[0].index];
+            switchToExplorer(r.side, r.ticker);
+          }
+        }
+      });
     }
   }
 
-  function renderRankingChart(side, pool, f) {
-    const id = side + "-ranking";
-    const canvas = $(id);
-    destroyChart(id);
-    const rows = rankingData(side, pool, f);
-    const color = COLORS[side].line;
-    const measureInfo = MEASURES[f.measure];
-
-    charts[id] = new Chart(canvas, {
-      type: "bar",
-      data: {
-        labels: rows.map(r => r.label),
-        datasets: [{
-          data: rows.map(r => r.value),
-          backgroundColor: color,
-          borderRadius: 4,
-          barThickness: 14
-        }]
-      },
-      options: {
-        indexAxis: "y",
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const r = rows[ctx.dataIndex];
-                const name = r.company ? `${r.ticker} — ${r.company}` : r.label;
-                return `${name}: ${measureInfo.fmt(r.value)}`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 10 } } },
-          y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 11, family: "monospace" } } }
-        },
-        onClick: (evt, elements) => {
-          if (!elements.length) return;
-          const r = rows[elements[0].index];
-          if (r.ticker) openOverlay(r.ticker, side);
-        }
-      }
-    });
-  }
-
-  function renderScatterChart(side, pool) {
-    const id = side + "-scatter";
-    const canvas = $(id);
-    destroyChart(id);
-    const rows = pool.viewEligible;
-    const color = COLORS[side].line;
-
-    charts[id] = new Chart(canvas, {
+  function renderScatter(pool) {
+    destroyChart("chart-scatter");
+    charts["chart-scatter"] = new Chart($("chart-scatter"), {
       type: "scatter",
-      data: {
-        datasets: [{
-          data: rows.map(s => ({ x: s.stdevWeeklyReturn, y: s.meanWeeklyReturn, ticker: s.ticker, company: s.company })),
-          backgroundColor: COLORS[side].soft,
-          borderColor: color,
-          borderWidth: 1,
-          radius: 4,
-          hoverRadius: 7,
-          hitRadius: 10
-        }]
-      },
+      data: { datasets: [
+        { label: "S&P 500", data: pool.spViewEligible.map(s => ({x:s.stdevWeeklyReturn,y:s.meanWeeklyReturn,ticker:s.ticker,company:s.company})),
+          backgroundColor: COLORS.sp.soft, borderColor: COLORS.sp.line, borderWidth: 1, radius: 4, hoverRadius: 7 },
+        { label: "Nasdaq 100", data: pool.ndxViewEligible.map(s => ({x:s.stdevWeeklyReturn,y:s.meanWeeklyReturn,ticker:s.ticker,company:s.company})),
+          backgroundColor: COLORS.ndx.soft, borderColor: COLORS.ndx.line, borderWidth: 1, radius: 4, hoverRadius: 7 }
+      ]},
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const p = ctx.raw;
-                return `${p.ticker} — ${p.company}: return ${SD.fmtPct(p.y)}, volatility ${SD.fmtPct(p.x)}`;
-              }
-            }
-          }
+          legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
+          tooltip: { callbacks: { label: ctx => `${ctx.raw.ticker} — ${ctx.raw.company}: return ${SD.fmtPct(ctx.raw.y)}, volatility ${SD.fmtPct(ctx.raw.x)}` } }
         },
         scales: {
           x: { title: { display: true, text: "Volatility (weekly)", color: COLORS.axis, font: { size: 10 } },
@@ -230,74 +227,67 @@
         },
         onClick: (evt, elements) => {
           if (!elements.length) return;
-          const p = rows[elements[0].index];
-          openOverlay(p.ticker, side);
+          const el = elements[0];
+          const side = el.datasetIndex === 0 ? "sp" : "ndx";
+          const p = (side === "sp" ? pool.spViewEligible : pool.ndxViewEligible)[el.index];
+          switchToExplorer(side, p.ticker);
         }
       }
     });
   }
 
-  function renderSectorChart(side, pool) {
-    const id = side + "-sector";
-    const canvas = $(id);
-    destroyChart(id);
-    const bySector = new Map();
-    for (const s of pool.viewEligible) bySector.set(s.sector, (bySector.get(s.sector) || 0) + 1);
-    let rows = Array.from(bySector.entries()).map(([sector, count]) => ({ sector, count }));
-    rows.sort((a,b) => b.count - a.count);
-    const color = COLORS[side].line;
+  function renderSectorComp(pool) {
+    destroyChart("chart-sectorcomp");
+    const sectors = Array.from(new Set([...pool.spViewEligible, ...pool.ndxViewEligible].map(s => s.sector))).sort();
+    const spCounts = sectors.map(sec => pool.spViewEligible.filter(s => s.sector === sec).length);
+    const ndxCounts = sectors.map(sec => pool.ndxViewEligible.filter(s => s.sector === sec).length);
 
-    charts[id] = new Chart(canvas, {
+    charts["chart-sectorcomp"] = new Chart($("chart-sectorcomp"), {
       type: "bar",
-      data: {
-        labels: rows.map(r => r.sector),
-        datasets: [{ data: rows.map(r => r.count), backgroundColor: color, borderRadius: 4, barThickness: 12 }]
-      },
+      data: { labels: sectors, datasets: [
+        { label: "S&P 500", data: spCounts, backgroundColor: COLORS.sp.line, borderRadius: 3 },
+        { label: "Nasdaq 100", data: ndxCounts, backgroundColor: COLORS.ndx.line, borderRadius: 3 }
+      ]},
       options: {
-        indexAxis: "y",
-        responsive: true,
-        maintainAspectRatio: false,
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => `${rows[ctx.dataIndex].sector}: ${rows[ctx.dataIndex].count} tickers` } }
+          legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
+          tooltip: { callbacks: { label: ctx => `${ctx.dataset.label} ${ctx.label}: ${ctx.raw} tickers` } }
         },
         scales: {
-          x: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 9 }, stepSize: 1 } },
-          y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 10 } } }
+          x: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 9 } } },
+          y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 10.5 } } }
         },
         onClick: (evt, elements) => {
           if (!elements.length) return;
-          els.sectorFilter.value = rows[elements[0].index].sector;
-          renderAll();
+          els.sectorFilter.value = sectors[elements[0].index];
+          renderOverview();
         }
       }
     });
   }
 
-  function renderTable(side, pool, f) {
-    const wrap = $(side + "-table-wrap");
-    const rows = pool.view;
-    const key = f.measure;
-
-    if (!wrap.dataset.sortKey) wrap.dataset.sortKey = "riskAdjustedScore";
-    if (!wrap.dataset.sortDir) wrap.dataset.sortDir = "desc";
+  function renderTable(pool, f) {
+    const wrap = $("ov-table-wrap");
+    if (!wrap.dataset.sortKey) { wrap.dataset.sortKey = "riskAdjustedScore"; wrap.dataset.sortDir = "desc"; }
 
     function draw() {
       const sortKey = wrap.dataset.sortKey;
       const dir = wrap.dataset.sortDir === "asc" ? 1 : -1;
-      const sorted = rows.slice().sort((a,b) => {
+      const sorted = pool.view.slice().sort((a,b) => {
         const av = a[sortKey], bv = b[sortKey];
         if (av === undefined || av === null) return 1;
         if (bv === undefined || bv === null) return -1;
         if (typeof av === "string") return av.localeCompare(bv) * dir;
         return (av - bv) * dir;
       });
-
       const body = sorted.map(s => {
-        const cls = (v) => v === undefined || v === null ? "" : (v >= 0 ? "up" : "down");
-        return `<tr data-ticker="${s.ticker}">
+        const cls = v => v === undefined || v === null ? "" : (v >= 0 ? "up" : "down");
+        const side = isSpMember(s.indexMembership) ? "sp" : "ndx";
+        return `<tr data-ticker="${s.ticker}" data-side="${side}">
           <td class="ticker-link">${s.ticker}</td>
           <td class="company-cell">${s.company || ""}</td>
+          <td class="company-cell">${s.indexMembership}</td>
           <td class="company-cell">${s.sector || ""}</td>
           <td>${SD.fmtInt(s.weeks)}</td>
           <td class="${cls(s.meanWeeklyReturn)}">${s.eligible ? SD.fmtPct(s.meanWeeklyReturn) : "—"}</td>
@@ -310,142 +300,139 @@
       wrap.innerHTML = `
         <table class="data-table">
           <thead><tr>
-            <th data-key="ticker">Ticker</th>
-            <th data-key="company">Company</th>
-            <th data-key="sector">Sector</th>
-            <th data-key="weeks">Weeks</th>
-            <th data-key="meanWeeklyReturn">Avg Return</th>
-            <th data-key="stdevWeeklyReturn">Volatility</th>
-            <th data-key="riskAdjustedScore">Score</th>
+            <th data-key="ticker">Ticker</th><th data-key="company">Company</th>
+            <th data-key="indexMembership">Index</th><th data-key="sector">Sector</th>
+            <th data-key="weeks">Weeks</th><th data-key="meanWeeklyReturn">Avg Return</th>
+            <th data-key="stdevWeeklyReturn">Volatility</th><th data-key="riskAdjustedScore">Score</th>
             <th data-key="cumulativeReturn">Cum. Return</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>`;
 
-      wrap.querySelectorAll("thead th").forEach(th => {
-        th.addEventListener("click", () => {
-          const k = th.dataset.key;
-          if (wrap.dataset.sortKey === k) {
-            wrap.dataset.sortDir = wrap.dataset.sortDir === "asc" ? "desc" : "asc";
-          } else {
-            wrap.dataset.sortKey = k;
-            wrap.dataset.sortDir = "desc";
-          }
-          draw();
-        });
-      });
-      wrap.querySelectorAll("tbody tr").forEach(tr => {
-        tr.addEventListener("click", () => openOverlay(tr.dataset.ticker, side));
-      });
+      wrap.querySelectorAll("thead th").forEach(th => th.addEventListener("click", () => {
+        const k = th.dataset.key;
+        wrap.dataset.sortDir = (wrap.dataset.sortKey === k && wrap.dataset.sortDir === "desc") ? "asc" : "desc";
+        wrap.dataset.sortKey = k;
+        draw();
+      }));
+      wrap.querySelectorAll("tbody tr").forEach(tr => tr.addEventListener("click", () =>
+        switchToExplorer(tr.dataset.side, tr.dataset.ticker)));
     }
     draw();
   }
 
-  function renderPanel(side, f) {
-    const pool = buildPool(side, f);
-    $(side + "-count").textContent = `${pool.eligible.length} eligible`;
-    renderStatTiles(side, pool, f);
-    renderRankingChart(side, pool, f);
-    renderScatterChart(side, pool);
-    renderSectorChart(side, pool);
-    renderTable(side, pool, f);
-  }
-
-  function renderAll() {
+  function renderOverview() {
     const f = getFilters();
-    renderPanel("sp", f);
-    renderPanel("ndx", f);
+    const pool = buildCombined(f);
+    renderStatTiles(pool);
+    renderLeaderboard(pool, f);
+    renderScatter(pool);
+    renderSectorComp(pool);
+    renderTable(pool, f);
   }
 
-  // ---------------- Ticker detail overlay ----------------
+  // ---------------- Stock Explorer ----------------
 
-  function rankWithin(ticker, side) {
-    const { stats } = SD.computeStats({ tickerFilter: poolFilterFor(side) });
-    const eligible = stats.filter(s => s.eligible).sort((a,b) => b.riskAdjustedScore - a.riskAdjustedScore);
-    const idx = eligible.findIndex(s => s.ticker === ticker);
-    return { rank: idx === -1 ? null : idx + 1, poolSize: eligible.length };
+  const explorer = { side: "sp", ticker: null, rangeWeeks: 262 };
+
+  function explorerPool(side) {
+    const { stats } = SD.computeStats({ tickerFilter: m => side === "sp" ? isSpMember(m.indexMembership) : isNdxMember(m.indexMembership) });
+    return stats.filter(s => s.eligible).sort((a,b) => b.riskAdjustedScore - a.riskAdjustedScore).slice(0, 25);
   }
 
-  function openOverlay(ticker, side) {
+  function renderSymbolList() {
+    const pool = explorerPool(explorer.side);
+    const q = $("explorerSearch").value.trim().toUpperCase();
+    const filtered = q ? pool.filter(s => s.ticker.includes(q) || (s.company||"").toUpperCase().includes(q)) : pool;
+
+    if (!explorer.ticker || !filtered.some(s => s.ticker === explorer.ticker)) {
+      explorer.ticker = filtered.length ? filtered[0].ticker : null;
+    }
+
+    $("symbolList").innerHTML = filtered.map((s, i) => `
+      <div class="symbol-row ${s.ticker === explorer.ticker ? 'selected' : ''}" data-ticker="${s.ticker}">
+        <span><span class="t">${s.ticker}</span><br><span class="c">${s.company}</span></span>
+        <span class="r">#${i+1}</span>
+      </div>`).join("");
+
+    $("symbolList").querySelectorAll(".symbol-row").forEach(row => {
+      row.addEventListener("click", () => { explorer.ticker = row.dataset.ticker; renderSymbolList(); renderExplorerDetail(); });
+    });
+
+    renderExplorerDetail();
+  }
+
+  function switchToExplorer(side, ticker) {
+    document.querySelectorAll(".dash-tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".dash-view").forEach(v => v.classList.remove("active"));
+    document.querySelector('.dash-tab[data-view="explorer"]').classList.add("active");
+    $("view-explorer").classList.add("active");
+
+    explorer.side = side;
+    document.querySelectorAll(".index-toggle button").forEach(b => b.classList.toggle("active", b.dataset.side === side));
+    explorer.ticker = ticker;
+    renderSymbolList();
+  }
+
+  function renderExplorerDetail() {
+    const ticker = explorer.ticker;
+    if (!ticker) return;
     const meta = SD.getMeta(ticker);
-    if (!meta) return;
     const fullSeries = SD.getSeries(ticker);
-    const returns = fullSeries.map(r => r.weeklyReturn).filter(v => v !== null);
-    const weeks = fullSeries.length;
+    const series = fullSeries.slice(-explorer.rangeWeeks);
+    const returns = series.map(r => r.weeklyReturn).filter(v => v !== null);
 
-    const m = returns.reduce((a,b) => a+b, 0) / returns.length;
-    const variance = returns.reduce((a,b) => a + Math.pow(b - m, 2), 0) / returns.length;
+    const m = returns.reduce((a,b)=>a+b,0) / returns.length;
+    const variance = returns.reduce((a,b)=>a+Math.pow(b-m,2),0) / returns.length;
     const stdev = Math.sqrt(variance);
     const score = stdev === 0 ? 0 : m / stdev;
-    const cum = (fullSeries[fullSeries.length-1].close - fullSeries[0].close) / fullSeries[0].close;
+    const cum = (series[series.length-1].close - series[0].close) / series[0].close;
 
     const pills = [];
-    if (meta.indexMembership === "S&P 500" || meta.indexMembership === "Both") pills.push(["sp","S&P 500"]);
-    if (meta.indexMembership === "Nasdaq 100" || meta.indexMembership === "Both") pills.push(["ndx","Nasdaq 100"]);
+    if (isSpMember(meta.indexMembership)) pills.push(["sp","S&P 500"]);
+    if (isNdxMember(meta.indexMembership)) pills.push(["ndx","Nasdaq 100"]);
 
-    $("overlay-ticker").textContent = ticker;
-    $("overlay-company").textContent = meta.company || "";
-    $("overlay-sub").innerHTML =
-      pills.map(([cls,label]) => `<span class="pill ${cls}">${label}</span>`).join("") +
+    $("ex-ticker").textContent = ticker;
+    $("ex-company").textContent = meta.company || "";
+    $("ex-sub").innerHTML = pills.map(([c,l]) => `<span class="pill ${c}">${l}</span>`).join("") +
       `${meta.sector} · ${meta.subIndustry || ""}`;
 
-    const rankBits = [];
-    if (meta.indexMembership === "S&P 500" || meta.indexMembership === "Both") {
-      const r = rankWithin(ticker, "sp");
-      if (r.rank) rankBits.push(`#${r.rank} of ${r.poolSize} in S&P 500`);
-    }
-    if (meta.indexMembership === "Nasdaq 100" || meta.indexMembership === "Both") {
-      const r = rankWithin(ticker, "ndx");
-      if (r.rank) rankBits.push(`#${r.rank} of ${r.poolSize} in Nasdaq 100`);
-    }
+    const pool = explorerPool(explorer.side);
+    const rank = pool.findIndex(s => s.ticker === ticker) + 1;
 
-    $("overlay-stats").innerHTML = `
-      <div class="stat-tile"><div class="label">Weeks tracked</div><div class="value">${SD.fmtInt(weeks)}</div></div>
-      <div class="stat-tile"><div class="label">Cumulative return</div><div class="value ${cum>=0?'up':'down'}">${SD.fmtPct(cum,1)}</div></div>
+    $("ex-stats").innerHTML = `
+      <div class="stat-tile"><div class="label">Weeks shown</div><div class="value">${SD.fmtInt(series.length)}</div></div>
+      <div class="stat-tile"><div class="label">Return (range)</div><div class="value ${cum>=0?'up':'down'}">${SD.fmtPct(cum,1)}</div></div>
       <div class="stat-tile"><div class="label">Consistency score</div><div class="value">${SD.fmtNum(score)}</div></div>
-      <div class="stat-tile"><div class="label">Index rank</div><div class="value" style="font-size:13px">${rankBits.join(" · ") || "—"}</div></div>
+      <div class="stat-tile"><div class="label">Top-25 rank</div><div class="value">${rank ? "#"+rank : "—"} <span style="font-size:12px;color:var(--text-muted)">of 25</span></div></div>
     `;
 
-    // Price history chart with biggest-move markers
-    const dated = fullSeries.map(r => ({ x: r.date, y: r.close, ret: r.weeklyReturn }));
-    const movesSorted = fullSeries.filter(r => r.weeklyReturn !== null).slice().sort((a,b) => b.weeklyReturn - a.weeklyReturn);
+    const dated = series.map(r => ({ x: r.date, y: r.close, ret: r.weeklyReturn }));
+    const movesSorted = series.filter(r => r.weeklyReturn !== null).slice().sort((a,b) => b.weeklyReturn - a.weeklyReturn);
     const topGains = movesSorted.slice(0, 5);
     const topDeclines = movesSorted.slice(-5).reverse();
     const bigMoveDates = new Set([...topGains, ...topDeclines].map(r => r.date));
 
-    destroyChart("overlay-chart");
-    const chartSide = side || ((meta.indexMembership === "Nasdaq 100") ? "ndx" : "sp");
-    charts["overlay-chart"] = new Chart($("overlay-chart"), {
+    destroyChart("ex-chart");
+    charts["ex-chart"] = new Chart($("ex-chart"), {
       type: "line",
-      data: {
-        labels: dated.map(d => d.x),
-        datasets: [{
-          data: dated.map(d => d.y),
-          borderColor: COLORS[chartSide].line,
-          backgroundColor: COLORS[chartSide].fill,
-          fill: true,
-          pointRadius: dated.map(d => bigMoveDates.has(d.x) ? 4 : 0),
-          pointHoverRadius: 6,
-          pointBackgroundColor: dated.map(d => d.ret !== null && d.ret >= 0 ? COLORS.good : COLORS.critical),
-          borderWidth: 1.75,
-          tension: 0.15
-        }]
-      },
+      data: { labels: dated.map(d => d.x), datasets: [{
+        data: dated.map(d => d.y),
+        borderColor: COLORS[explorer.side].line, backgroundColor: COLORS[explorer.side].fill, fill: true,
+        pointRadius: dated.map(d => bigMoveDates.has(d.x) ? 4 : 0), pointHoverRadius: 6,
+        pointBackgroundColor: dated.map(d => d.ret !== null && d.ret >= 0 ? COLORS.good : COLORS.critical),
+        borderWidth: 1.75, tension: 0.15
+      }]},
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
         plugins: {
           legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const d = dated[ctx.dataIndex];
-                const retStr = d.ret === null ? "" : `  (${d.ret >= 0 ? "+" : ""}${(d.ret*100).toFixed(1)}%)`;
-                return `Close: ${SD.fmtMoney(d.y)}${retStr}`;
-              }
-            }
-          }
+          tooltip: { callbacks: { label: ctx => {
+            const d = dated[ctx.dataIndex];
+            const retStr = d.ret === null ? "" : `  (${d.ret>=0?"+":""}${(d.ret*100).toFixed(1)}%)`;
+            return `Close: ${SD.fmtMoney(d.y)}${retStr}`;
+          } } }
         },
         scales: {
           x: { grid: { display: false }, ticks: { color: COLORS.axis, maxTicksLimit: 8, font: { size: 9 } } },
@@ -454,57 +441,65 @@
       }
     });
 
-    $("moves-gains").innerHTML = topGains.map(r =>
-      `<li><span>${r.date}</span><span class="up">+${(r.weeklyReturn*100).toFixed(1)}%</span></li>`).join("");
-    $("moves-declines").innerHTML = topDeclines.map(r =>
-      `<li><span>${r.date}</span><span class="down">${(r.weeklyReturn*100).toFixed(1)}%</span></li>`).join("");
-
-    els.overlay.classList.add("open");
+    $("ex-gains").innerHTML = topGains.map(r => `<li><span>${r.date}</span><span class="up">+${(r.weeklyReturn*100).toFixed(1)}%</span></li>`).join("");
+    $("ex-declines").innerHTML = topDeclines.map(r => `<li><span>${r.date}</span><span class="down">${(r.weeklyReturn*100).toFixed(1)}%</span></li>`).join("");
   }
 
-  function closeOverlay() {
-    els.overlay.classList.remove("open");
-  }
-
-  // ---------------- Init ----------------
-
-  function wireEvents() {
-    ["fromYear","toYear","sectorFilter","viewFilter","measureSelect","breakdownSelect"].forEach(id => {
-      els[id].addEventListener("change", renderAll);
+  function initExplorer() {
+    document.querySelectorAll(".index-toggle button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".index-toggle button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        explorer.side = btn.dataset.side;
+        explorer.ticker = null;
+        renderSymbolList();
+      });
     });
-    let searchTimer;
-    els.tickerSearch.addEventListener("input", () => {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(renderAll, 220);
+    $("explorerSearch").addEventListener("input", renderSymbolList);
+    document.querySelectorAll(".range-toggle button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".range-toggle button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        explorer.rangeWeeks = parseInt(btn.dataset.range, 10);
+        renderExplorerDetail();
+      });
     });
-    els.resetBtn.addEventListener("click", resetFilters);
-    els.overlayClose.addEventListener("click", closeOverlay);
-    els.overlay.addEventListener("click", (e) => { if (e.target === els.overlay) closeOverlay(); });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeOverlay(); });
+    renderSymbolList();
   }
+
+  // ---------------- Ticker tape ----------------
 
   function renderTape() {
     const { stats } = SD.computeStats({});
     const eligible = stats.filter(s => s.eligible);
     const sample = eligible.slice().sort((a,b) => Math.abs(b.meanWeeklyReturn) - Math.abs(a.meanWeeklyReturn)).slice(0, 24);
-    const track = $("tape-track");
     const html = sample.map(s => {
       const cls = s.cumulativeReturn >= 0 ? "up" : "down";
       const arrow = s.cumulativeReturn >= 0 ? "▲" : "▼";
       return `<span class="ticker-tape__item ${cls}"><b>${s.ticker}</b>${arrow} ${SD.fmtPct(s.cumulativeReturn,1)}</span>`;
     }).join("");
-    track.innerHTML = html + html; // duplicate for seamless loop
+    $("tape-track").innerHTML = html + html;
   }
+
+  // ---------------- Init ----------------
 
   document.addEventListener("DOMContentLoaded", () => {
     cacheEls();
-    wireEvents();
+    initTabs();
+    ["fromYear","toYear","sectorFilter","viewFilter","measureSelect","breakdownSelect"].forEach(id => {
+      els[id].addEventListener("change", renderOverview);
+    });
+    let searchTimer;
+    els.tickerSearch.addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(renderOverview, 220); });
+    els.resetBtn.addEventListener("click", resetFilters);
+
     els.loadingBanner.style.display = "flex";
     SD.load().then(() => {
       els.loadingBanner.style.display = "none";
       populateControls();
       renderTape();
-      renderAll();
+      renderOverview();
+      initExplorer();
     }).catch(err => {
       els.loadingBanner.innerHTML = `<span style="color:#e66767">Failed to load data: ${err.message || err}</span>`;
     });

@@ -200,12 +200,6 @@ a { color: inherit; }
   transform: translateZ(0);
   transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease, border-color .22s ease;
 }
-.card--interactive:hover {
-  transform: perspective(900px) rotateX(0.6deg) translateY(-3px);
-  box-shadow: var(--shadow-card-hover);
-  border-color: rgba(255,255,255,0.16);
-}
-
 /* ---------------- Filter bar ---------------- */
 
 .filter-bar {
@@ -265,53 +259,40 @@ a { color: inherit; }
 .reset-btn:hover { background: rgba(255,255,255,0.10); transform: translateY(-1px); }
 .reset-btn:active { transform: translateY(0); }
 
-/* ---------------- Index panels ---------------- */
+/* ---------------- Dashboard tabs ---------------- */
 
-.index-grid {
+.dash-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+.dash-tab {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--hairline);
+  color: var(--text-secondary);
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.dash-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+.dash-tab.active {
+  color: var(--text-primary);
+  background: rgba(57,135,229,0.14);
+  border-color: rgba(57,135,229,0.45);
+}
+.dash-view { display: none; }
+.dash-view.active { display: block; }
+
+/* A 2-up chart row for the Overview tab's combined charts */
+.chart-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 18px;
 }
-@media (max-width: 980px) {
-  .index-grid { grid-template-columns: 1fr; }
-}
-
-.index-panel {
-  padding: 22px;
-  position: relative;
-  overflow: hidden;
-}
-.index-panel::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-}
-.index-panel--sp::before { background: linear-gradient(90deg, var(--sp-color), transparent); }
-.index-panel--ndx::before { background: linear-gradient(90deg, var(--ndx-color), transparent); }
-
-.index-panel__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.index-panel__title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 17px;
-  font-weight: 700;
-}
-.index-panel__badge {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-.index-panel--sp .index-panel__badge { background: var(--sp-color); box-shadow: 0 0 8px rgba(57,135,229,0.8); }
-.index-panel--ndx .index-panel__badge { background: var(--ndx-color); box-shadow: 0 0 8px rgba(217,89,38,0.8); }
-
-.index-panel__count { color: var(--text-muted); font-size: 12.5px; font-family: var(--font-mono); }
+@media (max-width: 900px) { .chart-row { grid-template-columns: 1fr; } }
 
 /* Stat tiles */
 .stat-row {
@@ -404,53 +385,82 @@ table.data-table {
 .data-table td.down { color: var(--critical); }
 .ticker-link { font-weight: 700; color: var(--text-primary); }
 
-/* ---------------- Ticker detail overlay ---------------- */
+/* ---------------- Stock Explorer tab ---------------- */
 
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: none;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 4vh 16px;
-  background: rgba(3,4,8,0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  overflow-y: auto;
+.explorer-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 20px;
+  align-items: start;
 }
-.overlay.open { display: flex; }
+@media (max-width: 860px) { .explorer-layout { grid-template-columns: 1fr; } }
 
-.overlay-panel {
-  width: min(920px, 100%);
-  background: linear-gradient(180deg, #17181d, #131318);
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 18px;
-  box-shadow: 0 30px 90px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.08) inset;
-  padding: 26px 28px 30px;
-  transform: perspective(1400px) rotateX(0deg) translateY(0);
-  animation: overlay-in .28s cubic-bezier(.2,.9,.25,1);
+.index-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
 }
-@keyframes overlay-in {
-  from { opacity: 0; transform: perspective(1400px) rotateX(4deg) translateY(18px) scale(.98); }
-  to   { opacity: 1; transform: perspective(1400px) rotateX(0deg) translateY(0) scale(1); }
+.index-toggle button {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--hairline);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
 }
+.index-toggle button.active.sp { background: var(--sp-color-soft); color: var(--sp-color); border-color: rgba(57,135,229,0.5); }
+.index-toggle button.active.ndx { background: var(--ndx-color-soft); color: var(--ndx-color); border-color: rgba(217,89,38,0.5); }
 
-.overlay-close {
-  position: absolute;
-  top: 18px;
-  right: 20px;
-  background: rgba(255,255,255,0.06);
+.symbol-search {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--hairline);
   color: var(--text-primary);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 15px;
-  line-height: 1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  margin-bottom: 10px;
 }
-.overlay-close:hover { background: rgba(255,255,255,0.14); }
+
+.symbol-list {
+  max-height: 560px;
+  overflow-y: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+.symbol-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 9px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.045);
+  transition: background .12s ease;
+}
+.symbol-row:hover { background: rgba(255,255,255,0.05); }
+.symbol-row.selected { background: rgba(57,135,229,0.14); }
+.symbol-row .t { font-family: var(--font-mono); font-weight: 700; font-size: 13px; }
+.symbol-row .c { font-size: 11px; color: var(--text-muted); }
+.symbol-row .r { font-family: var(--font-mono); font-size: 12px; }
+
+.range-toggle {
+  display: flex;
+  gap: 6px;
+}
+.range-toggle button {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--hairline);
+  color: var(--text-secondary);
+  border-radius: 7px;
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.range-toggle button.active { background: rgba(255,255,255,0.14); color: var(--text-primary); }
 
 .overlay-head {
   display: flex;
