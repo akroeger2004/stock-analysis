@@ -24,6 +24,20 @@
   let allDates = [];
 
   function $(id) { return document.getElementById(id); }
+
+  // Trading-terminal-style flash when a tracked number changes between
+  // renders (never on the first render, only on subsequent updates).
+  const flashState = {};
+  // `inverted`: for metrics where a lower number is the improvement (e.g.
+  // a consistency rank of #5 beats #74), so the flash color follows
+  // "better/worse" rather than raw numeric direction.
+  function flashClass(key, newVal, inverted) {
+    const prev = flashState[key];
+    flashState[key] = newVal;
+    if (prev === undefined || newVal === prev) return "";
+    const improved = inverted ? newVal < prev : newVal > prev;
+    return improved ? "flash-up" : "flash-down";
+  }
   function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
   // ---------------- Tabs ----------------
@@ -131,11 +145,12 @@
     }
     const avgReturn = e.reduce((a,b) => a + b.meanWeeklyReturn, 0) / e.length;
     const avgScore = e.reduce((a,b) => a + b.riskAdjustedScore, 0) / e.length;
+    const countVal = pool.view.length, overlapVal = pool.overlapTop25;
     wrap.innerHTML = `
-      <div class="stat-tile"><div class="label">Tickers in view</div><div class="value">${SD.fmtInt(pool.view.length)}</div></div>
-      <div class="stat-tile"><div class="label">Avg weekly return</div><div class="value ${avgReturn>=0?'up':'down'}">${SD.fmtPct(avgReturn)}</div></div>
-      <div class="stat-tile"><div class="label">Avg consistency score</div><div class="value">${SD.fmtNum(avgScore)}</div></div>
-      <div class="stat-tile"><div class="label">Overlap (S&amp;P ∩ Nasdaq Top 25)</div><div class="value">${pool.overlapTop25} <span style="font-size:12px;color:var(--text-muted)">of 25</span></div></div>
+      <div class="stat-tile ${flashClass('ov-count', countVal)}"><div class="label">Tickers in view</div><div class="value">${SD.fmtInt(countVal)}</div></div>
+      <div class="stat-tile ${flashClass('ov-avgReturn', avgReturn)}"><div class="label">Avg weekly return</div><div class="value ${avgReturn>=0?'up':'down'}">${SD.fmtPct(avgReturn)}</div></div>
+      <div class="stat-tile ${flashClass('ov-avgScore', avgScore)}"><div class="label">Avg consistency score</div><div class="value">${SD.fmtNum(avgScore)}</div></div>
+      <div class="stat-tile ${flashClass('ov-overlap', overlapVal)}"><div class="label">Overlap (S&amp;P ∩ Nasdaq Top 25)</div><div class="value">${overlapVal} <span style="font-size:12px;color:var(--text-muted)">of 25</span></div></div>
     `;
   }
 
@@ -417,10 +432,10 @@
     const rank = pool.findIndex(s => s.ticker === ticker) + 1;
 
     $("ex-stats").innerHTML = `
-      <div class="stat-tile"><div class="label">Weeks shown</div><div class="value">${SD.fmtInt(series.length)}</div></div>
-      <div class="stat-tile"><div class="label">Return (range)</div><div class="value ${cum>=0?'up':'down'}">${SD.fmtPct(cum,1)}</div></div>
-      <div class="stat-tile"><div class="label">Consistency score</div><div class="value">${SD.fmtNum(score)}</div></div>
-      <div class="stat-tile"><div class="label">Consistency rank</div><div class="value">${rank ? "#"+rank : "—"} <span style="font-size:12px;color:var(--text-muted)">of ${pool.length}</span></div></div>
+      <div class="stat-tile ${flashClass('ex-weeks', series.length)}"><div class="label">Weeks shown</div><div class="value">${SD.fmtInt(series.length)}</div></div>
+      <div class="stat-tile ${flashClass('ex-return', cum)}"><div class="label">Return (range)</div><div class="value ${cum>=0?'up':'down'}">${SD.fmtPct(cum,1)}</div></div>
+      <div class="stat-tile ${flashClass('ex-score', score)}"><div class="label">Consistency score</div><div class="value">${SD.fmtNum(score)}</div></div>
+      <div class="stat-tile ${flashClass('ex-rank', rank, true)}"><div class="label">Consistency rank</div><div class="value">${rank ? "#"+rank : "—"} <span style="font-size:12px;color:var(--text-muted)">of ${pool.length}</span></div></div>
     `;
 
     const movesSorted = series.filter(r => r.weeklyReturn !== null).slice().sort((a,b) => b.weeklyReturn - a.weeklyReturn);

@@ -35,7 +35,7 @@
   --critical: #e66767;
 
   --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 
   --radius: 14px;
   --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 30px rgba(0,0,0,0.55);
@@ -333,6 +333,18 @@ a { color: inherit; }
 }
 .stat-tile .value.up { color: var(--good); text-shadow: 0 0 14px rgba(12,163,12,0.35); }
 .stat-tile .value.down { color: var(--critical); text-shadow: 0 0 14px rgba(230,103,103,0.35); }
+
+/* Trading-terminal-style flash when a stat tile's number changes */
+@keyframes flash-up-anim {
+  0% { background: rgba(12,163,12,0.4); border-color: rgba(12,163,12,0.6); }
+  100% { background: transparent; border-color: var(--hairline); }
+}
+@keyframes flash-down-anim {
+  0% { background: rgba(230,103,103,0.4); border-color: rgba(230,103,103,0.6); }
+  100% { background: transparent; border-color: var(--hairline); }
+}
+.stat-tile.flash-up { animation: flash-up-anim 1000ms ease-out; }
+.stat-tile.flash-down { animation: flash-down-anim 1000ms ease-out; }
 
 /* Chart cards inside a panel */
 .chart-card {
