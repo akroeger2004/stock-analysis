@@ -244,6 +244,14 @@ a { color: inherit; }
   box-shadow: 0 0 0 3px rgba(57,135,229,0.18);
 }
 
+/* The dropdown's own option list is browser-chrome, not styled by the
+   select's background — without this, options can render unreadable
+   (e.g. light text on a light system background) until hovered. */
+.filter-field select option {
+  background: #14151a;
+  color: var(--text-primary);
+}
+
 .reset-btn {
   margin-left: auto;
   background: rgba(255,255,255,0.05);
