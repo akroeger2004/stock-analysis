@@ -343,6 +343,49 @@ a { color: inherit; }
 .chart-card__hint { font-size: 11px; color: var(--text-muted); }
 .chart-card canvas { max-width: 100%; }
 
+/* Ranked lists (replaces a bar/scatter chart with a compact leaderboard) */
+.rank-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 700px) { .rank-columns { grid-template-columns: 1fr; } }
+
+.rank-col__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.rank-col__head .dot { width: 8px; height: 8px; border-radius: 50%; }
+.rank-col--sp .dot { background: var(--sp-color); }
+.rank-col--ndx .dot { background: var(--ndx-color); }
+
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.045);
+  transition: background .12s ease;
+}
+.rank-row:hover { background: rgba(255,255,255,0.05); }
+.rank-row .rank-num {
+  width: 18px; flex-shrink: 0;
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); text-align: right;
+}
+.rank-row .rank-name { width: 122px; flex-shrink: 0; overflow: hidden; }
+.rank-row .rank-name .t { font-family: var(--font-mono); font-weight: 700; font-size: 12.5px; }
+.rank-row .rank-name .c { font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.rank-row .rank-bars { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.rank-row .mini-bar-track { position: relative; height: 7px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+.rank-row .mini-bar-fill { position: absolute; top:0; left:0; bottom:0; border-radius: 4px; }
+.rank-row .rank-value { width: 62px; flex-shrink: 0; text-align: right; font-family: var(--font-mono); font-size: 11.5px; }
+
 /* Data table */
 .data-table-wrap {
   max-height: 320px;

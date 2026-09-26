@@ -139,101 +139,75 @@
     `;
   }
 
+  // Shared renderer for a two-column ranked list (replaces a bar/scatter
+  // chart with a compact leaderboard). `rowsFor(side)` returns the rows to
+  // show for that side, already in display order; `valueHtml(row, maxAbs)`
+  // returns the value/bar markup for one row.
+  function renderRankColumns(containerId, spRows, ndxRows, valueHtml, sideForRow) {
+    const maxAbs = Math.max(
+      1e-9,
+      ...spRows.map(r => Math.abs(r._barValue)),
+      ...ndxRows.map(r => Math.abs(r._barValue))
+    );
+    function col(sideLabel, sideClass, rows, side) {
+      const rowsHtml = rows.map((r, i) => `
+        <div class="rank-row" data-ticker="${r.ticker}" data-side="${side}">
+          <span class="rank-num">${i+1}</span>
+          <span class="rank-name"><span class="t">${r.ticker}</span><span class="c">${r.company||""}</span></span>
+          ${valueHtml(r, maxAbs)}
+        </div>`).join("");
+      return `<div>
+        <div class="rank-col__head rank-col--${sideClass}"><span class="dot"></span>${sideLabel}</div>
+        ${rowsHtml || '<div style="color:var(--text-muted);font-size:12px;padding:6px 4px;">No matches</div>'}
+      </div>`;
+    }
+    $(containerId).innerHTML =
+      col("S&P 500", "sp", spRows, "sp") + col("Nasdaq 100", "ndx", ndxRows, "ndx");
+
+    $(containerId).querySelectorAll(".rank-row[data-ticker]").forEach(row => {
+      row.addEventListener("click", () => switchToExplorer(row.dataset.side, row.dataset.ticker));
+    });
+  }
+
   function renderLeaderboard(pool, f) {
-    destroyChart("chart-leaderboard");
     const key = f.measure;
     const measureInfo = MEASURES[key];
-    const canvas = $("chart-leaderboard");
 
     if (f.breakdown === "sector") {
       const sectors = Array.from(new Set([...pool.spPool, ...pool.ndxPool].map(s => s.sector))).sort();
-      const spAvg = sectors.map(sec => {
+      const spRows = sectors.map(sec => {
         const vals = pool.spPool.filter(s => s.sector === sec).map(s => s[key]);
-        return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
-      });
-      const ndxAvg = sectors.map(sec => {
+        const avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+        return { ticker: sec, company: `${vals.length} tickers`, _barValue: avg, _value: avg };
+      }).sort((a,b) => b._value - a._value);
+      const ndxRows = sectors.map(sec => {
         const vals = pool.ndxPool.filter(s => s.sector === sec).map(s => s[key]);
-        return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
-      });
-      charts["chart-leaderboard"] = new Chart(canvas, {
-        type: "bar",
-        data: { labels: sectors, datasets: [
-          { label: "S&P 500", data: spAvg, backgroundColor: COLORS.sp.line, borderRadius: 3 },
-          { label: "Nasdaq 100", data: ndxAvg, backgroundColor: COLORS.ndx.line, borderRadius: 3 }
-        ]},
-        options: {
-          indexAxis: "y", responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
-            tooltip: { callbacks: { label: ctx => `${ctx.dataset.label} ${ctx.label}: ${measureInfo.fmt(ctx.raw)}` } }
-          },
-          scales: {
-            x: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 10 } } },
-            y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 10.5 } } }
-          }
-        }
-      });
+        const avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+        return { ticker: sec, company: `${vals.length} tickers`, _barValue: avg, _value: avg };
+      }).sort((a,b) => b._value - a._value);
+      renderRankColumns("list-leaderboard", spRows, ndxRows, (r, maxAbs) => `
+        <span class="rank-bars"><span class="mini-bar-track"><span class="mini-bar-fill" style="width:${Math.abs(r._value)/maxAbs*100}%;background:${r._value>=0?COLORS.good:COLORS.critical}"></span></span></span>
+        <span class="rank-value">${measureInfo.fmt(r._value)}</span>`);
     } else {
-      const spTop = pool.spPool.slice().sort((a,b) => b[key]-a[key]).slice(0, 10);
-      const ndxTop = pool.ndxPool.slice().sort((a,b) => b[key]-a[key]).slice(0, 10);
-      const rows = [...spTop.map(s => ({...s, side:"sp"})), ...ndxTop.map(s => ({...s, side:"ndx"}))];
-      charts["chart-leaderboard"] = new Chart(canvas, {
-        type: "bar",
-        data: {
-          labels: rows.map(r => r.ticker),
-          datasets: [{ data: rows.map(r => r[key]), backgroundColor: rows.map(r => COLORS[r.side].line), borderRadius: 4, barThickness: 12 }]
-        },
-        options: {
-          indexAxis: "y", responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: ctx => `${rows[ctx.dataIndex].ticker} — ${rows[ctx.dataIndex].company}: ${measureInfo.fmt(rows[ctx.dataIndex][key])}` } }
-          },
-          scales: {
-            x: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 10 } } },
-            y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 10, family: "monospace" } } }
-          },
-          onClick: (evt, elements) => {
-            if (!elements.length) return;
-            const r = rows[elements[0].index];
-            switchToExplorer(r.side, r.ticker);
-          }
-        }
-      });
+      const spRows = pool.spPool.slice().sort((a,b) => b[key]-a[key]).slice(0, 5).map(s => ({...s, _barValue: s[key], _value: s[key]}));
+      const ndxRows = pool.ndxPool.slice().sort((a,b) => b[key]-a[key]).slice(0, 5).map(s => ({...s, _barValue: s[key], _value: s[key]}));
+      renderRankColumns("list-leaderboard", spRows, ndxRows, (r, maxAbs) => `
+        <span class="rank-bars"><span class="mini-bar-track"><span class="mini-bar-fill" style="width:${Math.abs(r._value)/maxAbs*100}%;background:${r._value>=0?COLORS.good:COLORS.critical}"></span></span></span>
+        <span class="rank-value">${measureInfo.fmt(r._value)}</span>`);
     }
   }
 
-  function renderScatter(pool) {
-    destroyChart("chart-scatter");
-    charts["chart-scatter"] = new Chart($("chart-scatter"), {
-      type: "scatter",
-      data: { datasets: [
-        { label: "S&P 500", data: pool.spViewEligible.map(s => ({x:s.stdevWeeklyReturn,y:s.meanWeeklyReturn,ticker:s.ticker,company:s.company})),
-          backgroundColor: COLORS.sp.soft, borderColor: COLORS.sp.line, borderWidth: 1, radius: 4, hoverRadius: 7 },
-        { label: "Nasdaq 100", data: pool.ndxViewEligible.map(s => ({x:s.stdevWeeklyReturn,y:s.meanWeeklyReturn,ticker:s.ticker,company:s.company})),
-          backgroundColor: COLORS.ndx.soft, borderColor: COLORS.ndx.line, borderWidth: 1, radius: 4, hoverRadius: 7 }
-      ]},
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
-          tooltip: { callbacks: { label: ctx => `${ctx.raw.ticker} — ${ctx.raw.company}: return ${SD.fmtPct(ctx.raw.y)}, volatility ${SD.fmtPct(ctx.raw.x)}` } }
-        },
-        scales: {
-          x: { title: { display: true, text: "Volatility (weekly)", color: COLORS.axis, font: { size: 10 } },
-               grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 9 }, callback: v => (v*100).toFixed(0)+"%" } },
-          y: { title: { display: true, text: "Avg weekly return", color: COLORS.axis, font: { size: 10 } },
-               grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 9 }, callback: v => (v*100).toFixed(1)+"%" } }
-        },
-        onClick: (evt, elements) => {
-          if (!elements.length) return;
-          const el = elements[0];
-          const side = el.datasetIndex === 0 ? "sp" : "ndx";
-          const p = (side === "sp" ? pool.spViewEligible : pool.ndxViewEligible)[el.index];
-          switchToExplorer(side, p.ticker);
-        }
-      }
-    });
+  function renderRiskReturnList(pool) {
+    const spRows = pool.spPool.slice(0, 5).map(s => ({...s, _barValue: s.meanWeeklyReturn}));
+    const ndxRows = pool.ndxPool.slice(0, 5).map(s => ({...s, _barValue: s.meanWeeklyReturn}));
+    const maxVol = Math.max(1e-9, ...spRows.map(r=>r.stdevWeeklyReturn), ...ndxRows.map(r=>r.stdevWeeklyReturn));
+    const maxRet = Math.max(1e-9, ...spRows.map(r=>Math.abs(r.meanWeeklyReturn)), ...ndxRows.map(r=>Math.abs(r.meanWeeklyReturn)));
+    renderRankColumns("list-riskreturn", spRows, ndxRows, (r) => `
+      <span class="rank-bars">
+        <span class="mini-bar-track" title="Avg weekly return"><span class="mini-bar-fill" style="width:${Math.abs(r.meanWeeklyReturn)/maxRet*100}%;background:${r.meanWeeklyReturn>=0?COLORS.good:COLORS.critical}"></span></span>
+        <span class="mini-bar-track" title="Volatility"><span class="mini-bar-fill" style="width:${r.stdevWeeklyReturn/maxVol*100}%;background:${COLORS.axis}"></span></span>
+      </span>
+      <span class="rank-value">${SD.fmtPct(r.meanWeeklyReturn)}<br><span style="color:var(--text-muted);font-size:10px">±${SD.fmtPct(r.stdevWeeklyReturn)}</span></span>`);
   }
 
   function renderSectorComp(pool) {
@@ -326,7 +300,7 @@
     const pool = buildCombined(f);
     renderStatTiles(pool);
     renderLeaderboard(pool, f);
-    renderScatter(pool);
+    renderRiskReturnList(pool);
     renderSectorComp(pool);
     renderTable(pool, f);
   }
