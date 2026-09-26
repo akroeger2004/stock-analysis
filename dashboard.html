@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Stock Analysis</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="site-nav__brand" href="index.html">
+    <span class="dot"></span>
+    Consistent Gainers <small>S&amp;P 500 vs Nasdaq 100</small>
+  </a>
+  <div class="site-nav__links">
+    <a href="index.html">Report</a>
+    <a href="dashboard.html" class="active">Dashboard</a>
+  </div>
+</nav>
+
+<div class="ticker-tape">
+  <div class="ticker-tape__track" id="tape-track"></div>
+</div>
+
+<div class="page">
+
+  <div class="page-head">
+    <h1>Interactive Dashboard</h1>
+    <p>Filter the full weekly price panel (517 tickers, 2021–2026) and compare the S&amp;P 500 and
+       Nasdaq 100 side by side. Click any ticker — in a chart or the table — for its full price
+       history, biggest weekly moves, and where it ranks on consistency within its index.</p>
+  </div>
+
+  <div id="loadingBanner" class="loading-banner card" style="display:none;">
+    <span class="spinner"></span> Loading price panel (24&nbsp;MB, ~133,000 rows)…
+  </div>
+
+  <div class="filter-bar card">
+    <div class="filter-field">
+      <label for="fromYear">From year</label>
+      <select id="fromYear"></select>
+    </div>
+    <div class="filter-field">
+      <label for="toYear">To year</label>
+      <select id="toYear"></select>
+    </div>
+    <div class="filter-field">
+      <label for="sectorFilter">Sector</label>
+      <select id="sectorFilter"></select>
+    </div>
+    <div class="filter-field">
+      <label for="tickerSearch">Ticker / company</label>
+      <input type="text" id="tickerSearch" placeholder="e.g. NVDA or Nvidia">
+    </div>
+    <div class="filter-field">
+      <label for="viewFilter">View</label>
+      <select id="viewFilter">
+        <option value="top25">Top 25 Consistent</option>
+        <option value="eligible">All Eligible (≥92% history)</option>
+        <option value="all">All Tickers</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="measureSelect">Measure</label>
+      <select id="measureSelect">
+        <option value="riskAdjustedScore">Risk-Adjusted Score</option>
+        <option value="meanWeeklyReturn">Avg Weekly Return</option>
+        <option value="cumulativeReturn">Cumulative Return</option>
+        <option value="stdevWeeklyReturn">Volatility</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="breakdownSelect">Breakdown</label>
+      <select id="breakdownSelect">
+        <option value="ticker">Individual Ticker</option>
+        <option value="sector">Sector</option>
+      </select>
+    </div>
+    <button class="reset-btn" id="resetBtn">Reset filters</button>
+  </div>
+
+  <div class="index-grid">
+
+    <!-- S&P 500 panel -->
+    <section class="index-panel index-panel--sp card card--interactive">
+      <div class="index-panel__head">
+        <div class="index-panel__title"><span class="index-panel__badge"></span>S&amp;P 500</div>
+        <div class="index-panel__count" id="sp-count">—</div>
+      </div>
+      <div class="stat-row" id="sp-stats"></div>
+
+      <div class="chart-card">
+        <div class="chart-card__head"><span class="chart-card__title">Ranking</span><span class="chart-card__hint">click a bar</span></div>
+        <canvas id="sp-ranking" height="220"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card__head"><span class="chart-card__title">Risk vs. Return</span><span class="chart-card__hint">click a point</span></div>
+        <canvas id="sp-scatter" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card__head"><span class="chart-card__title">Sector composition</span><span class="chart-card__hint">click to filter</span></div>
+        <canvas id="sp-sector" height="200"></canvas>
+      </div>
+
+      <div class="data-table-wrap" id="sp-table-wrap"></div>
+    </section>
+
+    <!-- Nasdaq 100 panel -->
+    <section class="index-panel index-panel--ndx card card--interactive">
+      <div class="index-panel__head">
+        <div class="index-panel__title"><span class="index-panel__badge"></span>Nasdaq 100</div>
+        <div class="index-panel__count" id="ndx-count">—</div>
+      </div>
+      <div class="stat-row" id="ndx-stats"></div>
+
+      <div class="chart-card">
+        <div class="chart-card__head"><span class="chart-card__title">Ranking</span><span class="chart-card__hint">click a bar</span></div>
+        <canvas id="ndx-ranking" height="220"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card__head"><span class="chart-card__title">Risk vs. Return</span><span class="chart-card__hint">click a point</span></div>
+        <canvas id="ndx-scatter" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card__head"><span class="chart-card__title">Sector composition</span><span class="chart-card__hint">click to filter</span></div>
+        <canvas id="ndx-sector" height="200"></canvas>
+      </div>
+
+      <div class="data-table-wrap" id="ndx-table-wrap"></div>
+    </section>
+
+  </div>
+
+  <footer class="site-footer">Data: Yahoo Finance public chart API, weekly bars, 2021–2026 · S&amp;P 500 &amp; Nasdaq 100 constituent lists via public GitHub datasets</footer>
+</div>
+
+<!-- Ticker detail overlay -->
+<div class="overlay" id="overlay">
+  <div class="overlay-panel">
+    <button class="overlay-close" id="overlayClose" aria-label="Close">✕</button>
+    <div class="overlay-head">
+      <span class="ticker" id="overlay-ticker"></span>
+      <span class="company" id="overlay-company"></span>
+    </div>
+    <div class="overlay-sub" id="overlay-sub"></div>
+    <div class="overlay-stats" id="overlay-stats"></div>
+    <div class="overlay-chart">
+      <canvas id="overlay-chart" height="220"></canvas>
+    </div>
+    <div class="moves-grid">
+      <div class="moves-col">
+        <h4>Biggest weekly gains</h4>
+        <ul class="moves-list" id="moves-gains"></ul>
+      </div>
+      <div class="moves-col">
+        <h4>Biggest weekly declines</h4>
+        <ul class="moves-list" id="moves-declines"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
