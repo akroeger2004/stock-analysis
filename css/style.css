@@ -159,7 +159,8 @@ a { color: inherit; }
 }
 .ticker-tape:hover .ticker-tape__track { animation-play-state: paused; }
 
-.ticker-tape__item { color: var(--text-secondary); }
+.ticker-tape__item { color: var(--text-secondary); cursor: pointer; text-decoration: none; transition: opacity .12s ease; }
+.ticker-tape__item:hover { opacity: 0.65; text-decoration: underline; }
 .ticker-tape__item b { color: var(--text-primary); margin-right: 6px; }
 .ticker-tape__item.up { color: var(--good); }
 .ticker-tape__item.down { color: var(--critical); }

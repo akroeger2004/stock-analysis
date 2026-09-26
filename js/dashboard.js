@@ -378,7 +378,11 @@
     renderExplorerDetail();
   }
 
-  function switchToExplorer(side, ticker) {
+  // `searchTerm`: only set for jump-ins where `ticker` might not be in the
+  // side's default Top-25 view (e.g. from the ticker tape) — without it,
+  // renderSymbolList's own "ticker not in the visible list" fallback would
+  // silently swap back to that side's #1 pick instead of the requested one.
+  function switchToExplorer(side, ticker, searchTerm) {
     document.querySelectorAll(".dash-tab").forEach(b => b.classList.remove("active"));
     document.querySelectorAll(".dash-view").forEach(v => v.classList.remove("active"));
     document.querySelector('.dash-tab[data-view="explorer"]').classList.add("active");
@@ -388,6 +392,10 @@
     document.querySelectorAll(".index-toggle button").forEach(b => b.classList.toggle("active", b.dataset.side === side));
     explorer.ticker = ticker;
     clearCompare();
+    // Always set explicitly (never leave stale text in the box): a leftover
+    // search term from a previous jump would otherwise filter the very
+    // ticker this call is trying to show, re-triggering the same fallback.
+    $("explorerSearch").value = searchTerm !== undefined ? searchTerm : "";
     renderSymbolList();
   }
 
@@ -552,6 +560,15 @@
 
   // ---------------- Ticker tape ----------------
 
+  // Jump straight to Stock Explorer with a given ticker preloaded — used by
+  // both the live ticker tape and an incoming ?ticker= link from the report.
+  function jumpToTicker(ticker) {
+    const meta = SD.getMeta(ticker);
+    if (!meta) return;
+    const side = (isNdxMember(meta.indexMembership) && !isSpMember(meta.indexMembership)) ? "ndx" : "sp";
+    switchToExplorer(side, ticker, ticker);
+  }
+
   function renderTape() {
     const { stats } = SD.computeStats({});
     const eligible = stats.filter(s => s.eligible);
@@ -559,9 +576,12 @@
     const html = sample.map(s => {
       const cls = s.cumulativeReturn >= 0 ? "up" : "down";
       const arrow = s.cumulativeReturn >= 0 ? "▲" : "▼";
-      return `<span class="ticker-tape__item ${cls}"><b>${s.ticker}</b>${arrow} ${SD.fmtPct(s.cumulativeReturn,1)}</span>`;
+      return `<span class="ticker-tape__item ${cls}" data-ticker="${s.ticker}" title="View ${s.ticker} in Stock Explorer"><b>${s.ticker}</b>${arrow} ${SD.fmtPct(s.cumulativeReturn,1)}</span>`;
     }).join("");
     $("tape-track").innerHTML = html + html;
+    $("tape-track").querySelectorAll(".ticker-tape__item[data-ticker]").forEach(el => {
+      el.addEventListener("click", () => jumpToTicker(el.dataset.ticker));
+    });
   }
 
   // ---------------- Init ----------------
@@ -583,6 +603,9 @@
       renderTape();
       renderOverview();
       initExplorer();
+
+      const incomingTicker = new URLSearchParams(location.search).get("ticker");
+      if (incomingTicker) jumpToTicker(incomingTicker.toUpperCase());
     }).catch(err => {
       els.loadingBanner.innerHTML = `<span style="color:#e66767">Failed to load data: ${err.message || err}</span>`;
     });
