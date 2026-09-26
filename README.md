@@ -50,7 +50,7 @@ How derived numbers are computed:
 | File | What it does |
 |---|---|
 | `index.html` | The report page: title, byline, a summary, 5 headline numbers, 9 findings with charts, and a closing data-methodology section. |
-| `dashboard.html` | The interactive dashboard, split into two tabs so no single view is overloaded: **Overview** (shared filters — year range, sector, ticker search, view, measure, breakdown — 4 combined S&P-vs-Nasdaq charts/lists, a sortable table, and a reset button) and **Stock Explorer** (a Top-25 symbol list per index, a TradingView-style focus price chart with a 6M/1Y/2Y/5Y range toggle, big-move markers, and biggest-gain/decline lists). |
+| `dashboard.html` | The interactive dashboard, split into two tabs so no single view is overloaded: **Overview** (shared filters — year range, sector, ticker search, view, measure, breakdown — 4 combined S&P-vs-Nasdaq charts/lists, a sortable table, and a reset button) and **Stock Explorer** (a Top-25 symbol list per index, a TradingView-style focus price chart with a 6M/1Y/2Y/5Y range toggle, big-move markers, biggest-gain/decline lists, and an optional second ticker overlaid — both indexed to 100 at the start of the range — to compare growth rates directly). |
 | `css/style.css` | Shared dark finance-themed styling (nav bar, ticker tape, cards, filters, tables, ranked lists, Stock Explorer) for both pages. |
 | `js/data.js` | Loads and parses `data/sp500_nasdaq100_weekly_prices.csv` in the browser and computes per-ticker consistency stats on demand. Used only by `dashboard.html`. |
 | `js/dashboard.js` | All dashboard interactivity: the Overview tab's filters/charts/table, and the Stock Explorer tab's symbol list, focus chart, and stats. |
