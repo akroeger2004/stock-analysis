@@ -145,6 +145,11 @@ window.StockData = (function () {
     return cache.allDates;
   }
 
+  function allTickers() {
+    if (!cache) throw new Error("StockData not loaded yet");
+    return Array.from(cache.tickers.values()).sort((a,b) => a.ticker.localeCompare(b.ticker));
+  }
+
   // ---- formatting helpers ----
   function fmtPct(v, digits = 2) {
     if (v === null || v === undefined || isNaN(v)) return "—";
@@ -164,7 +169,7 @@ window.StockData = (function () {
   }
 
   return {
-    load, computeStats, getSeries, getMeta, allSectors, allDates,
+    load, computeStats, getSeries, getMeta, allSectors, allDates, allTickers,
     fmtPct, fmtNum, fmtMoney, fmtInt,
     FULL_WEEKS, ELIGIBLE_FRACTION
   };

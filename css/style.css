@@ -543,6 +543,29 @@ table.data-table {
 }
 .range-toggle button.active { background: rgba(255,255,255,0.14); color: var(--text-primary); }
 
+.compare-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.compare-row input {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--hairline);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+.compare-row button {
+  background: rgba(230,103,103,0.12);
+  border: 1px solid rgba(230,103,103,0.35);
+  color: var(--critical);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.compare-row button:hover { background: rgba(230,103,103,0.2); }
+
 .overlay-head {
   display: flex;
   align-items: baseline;

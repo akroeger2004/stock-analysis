@@ -323,7 +323,7 @@
 
   // ---------------- Stock Explorer ----------------
 
-  const explorer = { side: "sp", ticker: null, rangeWeeks: 262 };
+  const explorer = { side: "sp", ticker: null, rangeWeeks: 262, compareTicker: null };
 
   function explorerPool(side) {
     const { stats } = SD.computeStats({ tickerFilter: m => side === "sp" ? isSpMember(m.indexMembership) : isNdxMember(m.indexMembership) });
@@ -346,7 +346,7 @@
       </div>`).join("");
 
     $("symbolList").querySelectorAll(".symbol-row").forEach(row => {
-      row.addEventListener("click", () => { explorer.ticker = row.dataset.ticker; renderSymbolList(); renderExplorerDetail(); });
+      row.addEventListener("click", () => { explorer.ticker = row.dataset.ticker; clearCompare(); renderSymbolList(); renderExplorerDetail(); });
     });
 
     renderExplorerDetail();
@@ -361,7 +361,22 @@
     explorer.side = side;
     document.querySelectorAll(".index-toggle button").forEach(b => b.classList.toggle("active", b.dataset.side === side));
     explorer.ticker = ticker;
+    clearCompare();
     renderSymbolList();
+  }
+
+  function clearCompare() {
+    explorer.compareTicker = null;
+    const input = $("compareInput"), clearBtn = $("compareClear");
+    if (input) input.value = "";
+    if (clearBtn) clearBtn.style.display = "none";
+  }
+
+  // Index a series to 100 at its first point, for a fair overlay when the
+  // two tickers' raw share prices are on completely different scales.
+  function indexTo100(series) {
+    const base = series[0].close;
+    return series.map(r => ({ x: r.date, y: (r.close / base) * 100, ret: r.weeklyReturn }));
   }
 
   function renderExplorerDetail() {
@@ -397,28 +412,63 @@
       <div class="stat-tile"><div class="label">Top-25 rank</div><div class="value">${rank ? "#"+rank : "—"} <span style="font-size:12px;color:var(--text-muted)">of 25</span></div></div>
     `;
 
-    const dated = series.map(r => ({ x: r.date, y: r.close, ret: r.weeklyReturn }));
     const movesSorted = series.filter(r => r.weeklyReturn !== null).slice().sort((a,b) => b.weeklyReturn - a.weeklyReturn);
     const topGains = movesSorted.slice(0, 5);
     const topDeclines = movesSorted.slice(-5).reverse();
     const bigMoveDates = new Set([...topGains, ...topDeclines].map(r => r.date));
 
-    destroyChart("ex-chart");
-    charts["ex-chart"] = new Chart($("ex-chart"), {
-      type: "line",
-      data: { labels: dated.map(d => d.x), datasets: [{
+    // Compare mode: both lines indexed to 100 at the start of the visible
+    // range, since two companies' raw share prices aren't comparable.
+    // Otherwise: a single line in actual dollar terms.
+    const compareMeta = explorer.compareTicker ? SD.getMeta(explorer.compareTicker) : null;
+    const datasets = [];
+    let dated;
+
+    if (compareMeta) {
+      dated = indexTo100(series);
+      const compareFull = SD.getSeries(explorer.compareTicker).slice(-explorer.rangeWeeks);
+      const compareIndexed = indexTo100(compareFull);
+      const compareByDate = new Map(compareIndexed.map(d => [d.x, d.y]));
+      const compareSide = (compareMeta.indexMembership === "Nasdaq 100") ? "ndx" : "sp";
+      // Use the compare ticker's own index color, unless that's the same
+      // color as the primary line — then flip so the two are distinguishable.
+      const compareColor = COLORS[compareSide === explorer.side ? (compareSide === "sp" ? "ndx" : "sp") : compareSide].line;
+
+      datasets.push({
+        label: `${ticker} (indexed)`,
+        data: dated.map(d => d.y),
+        borderColor: COLORS[explorer.side].line, backgroundColor: "transparent",
+        pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, tension: 0.15
+      });
+      datasets.push({
+        label: `${explorer.compareTicker} (indexed)`,
+        data: dated.map(d => compareByDate.has(d.x) ? compareByDate.get(d.x) : null),
+        borderColor: compareColor,
+        backgroundColor: "transparent", pointRadius: 0, pointHoverRadius: 5, borderWidth: 2,
+        borderDash: [5, 3], tension: 0.15, spanGaps: true
+      });
+    } else {
+      dated = series.map(r => ({ x: r.date, y: r.close, ret: r.weeklyReturn }));
+      datasets.push({
         data: dated.map(d => d.y),
         borderColor: COLORS[explorer.side].line, backgroundColor: COLORS[explorer.side].fill, fill: true,
         pointRadius: dated.map(d => bigMoveDates.has(d.x) ? 4 : 0), pointHoverRadius: 6,
         pointBackgroundColor: dated.map(d => d.ret !== null && d.ret >= 0 ? COLORS.good : COLORS.critical),
         borderWidth: 1.75, tension: 0.15
-      }]},
+      });
+    }
+
+    destroyChart("ex-chart");
+    charts["ex-chart"] = new Chart($("ex-chart"), {
+      type: "line",
+      data: { labels: dated.map(d => d.x), datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
         plugins: {
-          legend: { display: false },
+          legend: { display: !!compareMeta, labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
           tooltip: { callbacks: { label: ctx => {
+            if (compareMeta) return `${ctx.dataset.label}: ${ctx.raw === null ? "—" : ctx.raw.toFixed(1)}`;
             const d = dated[ctx.dataIndex];
             const retStr = d.ret === null ? "" : `  (${d.ret>=0?"+":""}${(d.ret*100).toFixed(1)}%)`;
             return `Close: ${SD.fmtMoney(d.y)}${retStr}`;
@@ -426,7 +476,8 @@
         },
         scales: {
           x: { grid: { display: false }, ticks: { color: COLORS.axis, maxTicksLimit: 8, font: { size: 9 } } },
-          y: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 9 } } }
+          y: { grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 9 },
+               callback: v => compareMeta ? v.toFixed(0) : v } }
         }
       }
     });
@@ -442,6 +493,7 @@
         btn.classList.add("active");
         explorer.side = btn.dataset.side;
         explorer.ticker = null;
+        clearCompare();
         renderSymbolList();
       });
     });
@@ -454,6 +506,21 @@
         renderExplorerDetail();
       });
     });
+
+    $("allTickersList").innerHTML = SD.allTickers()
+      .map(m => `<option value="${m.ticker}">${m.ticker} — ${m.company}</option>`).join("");
+
+    $("compareInput").addEventListener("change", () => {
+      const val = $("compareInput").value.trim().toUpperCase();
+      const meta = val ? SD.getMeta(val) : null;
+      if (val && !meta) return; // unknown ticker — ignore, leave input as typed
+      if (val === explorer.ticker) return; // can't compare a ticker to itself
+      explorer.compareTicker = val || null;
+      $("compareClear").style.display = explorer.compareTicker ? "inline-block" : "none";
+      renderExplorerDetail();
+    });
+    $("compareClear").addEventListener("click", () => { clearCompare(); renderExplorerDetail(); });
+
     renderSymbolList();
   }
 

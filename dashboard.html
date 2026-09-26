@@ -145,6 +145,11 @@
             <button data-range="262" class="active">5Y</button>
           </div>
         </div>
+        <div class="compare-row">
+          <input type="text" id="compareInput" list="allTickersList" placeholder="Compare with a ticker (e.g. AAPL)…">
+          <button id="compareClear" style="display:none;">✕ Clear</button>
+          <datalist id="allTickersList"></datalist>
+        </div>
         <div class="overlay-chart">
           <canvas id="ex-chart" height="230"></canvas>
         </div>
