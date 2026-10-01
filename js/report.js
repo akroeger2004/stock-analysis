@@ -16,6 +16,19 @@
 
   const BE_SERIES = [["2021-09-27",18.47],["2021-11-08",34.15],["2021-12-27",21.93],["2022-02-14",18.35],["2022-04-04",22.55],["2022-05-30",18.22],["2022-07-25",20.23],["2022-09-19",21.36],["2022-11-14",21.06],["2023-01-09",23.17],["2023-03-06",20.12],["2023-04-24",16.65],["2023-06-19",15.44],["2023-08-14",14.49],["2023-10-16",11.31],["2023-12-11",14.20],["2024-02-05",11.53],["2024-03-18",9.87],["2024-04-29",11.80],["2024-06-10",14.33],["2024-07-29",11.79],["2024-09-16",10.91],["2024-11-11",21.14],["2024-12-30",24.32],["2025-02-24",24.02],["2025-03-31",16.60],["2025-05-19",19.48],["2025-06-30",24.24],["2025-08-25",52.94],["2025-09-29",90.29],["2025-11-10",111.89],["2025-12-29",98.69],["2026-01-26",151.37],["2026-02-23",155.67],["2026-03-30",135.63],["2026-05-04",261.03],["2026-06-15",328.91],["2026-07-13",214.96],["2026-08-24",210.77],["2026-09-25",288.70]];
 
+  // Shared interaction styling: dark tooltips, white outline on the hovered bar, smooth transitions.
+  Chart.defaults.animation.duration = 700;
+  Chart.defaults.datasets.bar.hoverBorderColor = "#ffffff";
+  Chart.defaults.datasets.bar.hoverBorderWidth = 2;
+  Object.assign(Chart.defaults.plugins.tooltip, {
+    backgroundColor: "#0b0d14", borderColor: "rgba(255,255,255,0.18)", borderWidth: 1, padding: 12, cornerRadius: 8,
+    titleFont: { family: "JetBrains Mono, monospace", size: 12, weight: "700" }, bodyFont: { size: 12 }, footerFont: { size: 11, weight: "400" },
+    footerColor: "#898781", bodySpacing: 4
+  });
+  // Opens a ticker in the dashboard's Stock Explorer (same deep link the ticker tape uses).
+  const openTicker = t => { window.location.href = "dashboard.html?ticker=" + encodeURIComponent(t); };
+  const pointer = (evt, els) => { evt.native.target.style.cursor = els.length ? "pointer" : "default"; };
+
   function baseOpts(extra) {
     return Object.assign({
       responsive: true, maintainAspectRatio: false,
@@ -26,17 +39,49 @@
     return Object.assign({ grid: { color: COLORS.grid }, ticks: { color: COLORS.axis, font: { size: 10 } } }, scaleExtra || {});
   }
 
+  // Vertical crosshair that follows the hovered point on line charts.
+  const crosshair = {
+    id: "crosshair",
+    afterDatasetsDraw(chart) {
+      const active = chart.tooltip && chart.tooltip.getActiveElements();
+      if (!active || !active.length) return;
+      const x = active[0].element.x, { top, bottom } = chart.chartArea, ctx = chart.ctx;
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom); ctx.stroke();
+      ctx.restore();
+    }
+  };
+
+  // Price line chart with a hover crosshair and 1Y / 2Y / All range buttons.
+  // The tooltip shows the date, the close, and the change since the start of the visible range.
   function lineChart(id, series, color, label) {
-    new Chart(document.getElementById(id), {
+    const canvas = document.getElementById(id);
+    const lastDate = new Date(series[series.length - 1][0]);
+    const slice = years => {
+      if (!years) return series;
+      const cut = new Date(lastDate); cut.setFullYear(cut.getFullYear() - years);
+      return series.filter(p => new Date(p[0]) >= cut);
+    };
+    let view = series;
+    const chart = new Chart(canvas, {
       type: "line",
+      plugins: [crosshair],
       data: {
         labels: series.map(p => p[0]),
         datasets: [{ data: series.map(p => p[1]), borderColor: color, backgroundColor: color + "22",
-          fill: true, borderWidth: 2, pointRadius: 0, tension: 0.2 }]
+          fill: true, borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: color,
+          pointHoverBorderColor: "#fff", pointHoverBorderWidth: 2, tension: 0.2 }]
       },
       options: baseOpts({
-        plugins: { legend: { display: false }, tooltip: { callbacks: {
-          label: ctx => `${label}: $${ctx.raw.toFixed(2)}`
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false }, tooltip: { displayColors: false, callbacks: {
+          title: items => `${label} · week of ${items[0].label}`,
+          label: ctx => `Close: $${ctx.raw.toFixed(2)}`,
+          afterLabel: ctx => {
+            const chg = (ctx.raw / view[0][1] - 1) * 100;
+            return `${chg >= 0 ? "+" : "−"}${Math.abs(chg).toFixed(0)}% since ${view[0][0]}`;
+          }
         } } },
         scales: { x: { ticks: { color: COLORS.axis, maxTicksLimit: 7, font: { size: 9 } }, grid: { display: false },
                        title: { display: true, text: "Week", color: COLORS.axis, font: { size: 10 } } },
@@ -44,6 +89,23 @@
                        ticks: { color: COLORS.axis, font: { size: 9 }, callback: v => "$" + v } } }
       })
     });
+
+    const bar = document.createElement("div");
+    bar.className = "range-btns";
+    [["1Y", 1], ["2Y", 2], ["All", 0]].forEach(([text, yrs]) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = text;
+      if (!yrs) b.classList.add("active");
+      b.addEventListener("click", () => {
+        bar.querySelectorAll("button").forEach(x => x.classList.toggle("active", x === b));
+        view = slice(yrs);
+        chart.data.labels = view.map(p => p[0]);
+        chart.data.datasets[0].data = view.map(p => p[1]);
+        chart.update();
+      });
+      bar.appendChild(b);
+    });
+    canvas.parentNode.insertBefore(bar, canvas);
   }
 
   // Writes each bar's value at its tip, so readers don't have to read it off the axis.
@@ -75,6 +137,29 @@
     }
   });
 
+  // Ticker lists behind the bar charts (from data/*_top25_consistent_gainers.csv, best score first).
+  const OVERLAP_TICKERS = [
+    ["FIX","HWM","MCK","EME","CAH","PWR","MPC","TRGP","IBKR","GE","ANET","VST","LLY","FLEX","APH","DELL","LITE","VLO","CAT","JBL"],
+    ["CEG","KLAC","LRCX","PANW","AMD","PLTR","VRTX","WMT","AMAT","CRWD","MRVL","GILD","AAPL","ORLY","MAR","COST","GOOGL","GOOG","CTAS","APP"],
+    ["MU","STX","NVDA","WDC","AVGO"]
+  ];
+  const SECTOR_TICKERS = {
+    "S&P 500 Top 25": {
+      "Information Technology": ["MU","STX","NVDA","ANET","FLEX","WDC","APH","DELL","LITE","AVGO","JBL"],
+      "Industrials": ["FIX","HWM","EME","PWR","GE","CAT"], "Energy": ["MPC","TRGP","VLO"], "Health Care": ["MCK","CAH","LLY"],
+      "Utilities": ["VST"], "Financials": ["IBKR"]
+    },
+    "Nasdaq 100 Top 25": {
+      "Information Technology": ["MU","STX","NVDA","WDC","AVGO","KLAC","LRCX","PANW","AMD","PLTR","AMAT","CRWD","MRVL","AAPL"],
+      "Communication Services": ["GOOGL","GOOG","APP"], "Consumer Discretionary": ["ORLY","MAR"], "Consumer Staples": ["WMT","COST"],
+      "Health Care": ["VRTX","GILD"], "Industrials": ["CTAS"], "Utilities": ["CEG"]
+    }
+  };
+  const EXCLUDED_NAMES = {
+    EA: "Electronic Arts", HONA: "Honeywell Aerospace", FDXF: "FedEx Freight", Q: "Qnity Electronics", SNDK: "Sandisk", SOLV: "Solventum",
+    GEV: "GE Vernova", RDDT: "Reddit", VLTO: "Veralto", ARM: "Arm Holdings", KVUE: "Kenvue", GEHC: "GE HealthCare"
+  };
+
   // 1. Overlap between the two Top-25 lists
   new Chart(document.getElementById("chart-overlap"), {
     type: "bar",
@@ -84,7 +169,11 @@
     },
     options: baseOpts({
       indexAxis: "y",
-      plugins: { legend: { display: false }, valueLabels: { fmt: v => v + " tickers" } },
+      plugins: { legend: { display: false }, valueLabels: { fmt: v => v + " tickers" },
+        tooltip: { callbacks: {
+          label: ctx => `${ctx.raw} tickers`,
+          afterBody: items => OVERLAP_TICKERS[items[0].dataIndex].join(", ")
+        } } },
       scales: { x: axisColor({ max: 24, ticks: { color: COLORS.axis, font: { size: 10 }, stepSize: 5 } }),
                 y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 12 } } } }
     })
@@ -106,7 +195,13 @@
     },
     options: baseOpts({
       indexAxis: "y",
-      plugins: { legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } } },
+      interaction: { mode: "nearest", axis: "y", intersect: true },
+      plugins: { legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: {
+          title: items => `${items[0].dataset.label} · ${items[0].label}`,
+          label: ctx => `${ctx.raw} ${ctx.raw === 1 ? "ticker" : "tickers"}`,
+          afterLabel: ctx => (SECTOR_TICKERS[ctx.dataset.label][ctx.label] || []).join(", ")
+        } } },
       scales: { x: axisColor({ stacked: false }), y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 10.5 } } } }
     })
   });
@@ -148,8 +243,10 @@
       { label: "Nasdaq 100 names", data: ndxPoints, backgroundColor: COLORS.ndxSoft, borderColor: COLORS.ndx, borderWidth: 1.5, radius: 6, hoverRadius: 8 }
     ] },
     options: baseOpts({
+      onHover: pointer,
+      onClick: (evt, els, chart) => { if (els.length) openTicker(chart.data.datasets[els[0].datasetIndex].data[els[0].index].tick); },
       plugins: { legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
-                 tooltip: { callbacks: { label: ctx => ctx.raw.label } } },
+                 tooltip: { callbacks: { label: ctx => ctx.raw.label, footer: () => "Click to open in the dashboard" } } },
       scales: {
         x: axisColor({ min: 5, max: 14, title: { display: true, text: "Weekly volatility (std. dev.)", color: COLORS.axis, font: { size: 10 } },
                         ticks: { color: COLORS.axis, font: { size: 9 }, callback: v => v + "%" } }),
@@ -203,7 +300,10 @@
     },
     options: baseOpts({
       indexAxis: "y",
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} of 262 weeks (${(ctx.raw/262*100).toFixed(0)}%)` } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        title: items => `${items[0].label} · ${EXCLUDED_NAMES[items[0].label]}`,
+        label: ctx => `${ctx.raw} of 262 weeks (${(ctx.raw/262*100).toFixed(0)}%)`
+      } } },
       scales: { x: axisColor({ title: { display: true, text: "Weeks of history out of 262 possible", color: COLORS.axis, font: { size: 10 } } }),
                 y: { grid: { display: false }, ticks: { autoSkip: false, color: COLORS.text, font: { size: 11, family: "monospace" } } } }
     })
@@ -217,7 +317,10 @@
       datasets: [{ data: [150, -47], backgroundColor: [COLORS.good, COLORS.critical], borderRadius: 6, barThickness: 70 }]
     },
     options: baseOpts({
-      plugins: { legend: { display: false }, valueLabels: { fmt: v => (v > 0 ? "+" : "−") + Math.abs(v) + "%" } },
+      onHover: pointer,
+      onClick: (evt, els) => { if (els.length) openTicker(["INSM", "FISV"][els[0].index]); },
+      plugins: { legend: { display: false }, valueLabels: { fmt: v => (v > 0 ? "+" : "−") + Math.abs(v) + "%" },
+        tooltip: { callbacks: { label: ctx => `${ctx.raw > 0 ? "+" : "−"}${Math.abs(ctx.raw)}% in one week`, footer: () => "Click to open in the dashboard" } } },
       scales: { x: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 11.5 } } },
                 y: axisColor({ min: -100, max: 200, ticks: { color: COLORS.axis, font: { size: 10 }, stepSize: 50, callback: v => v + "%" } }) }
     })

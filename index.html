@@ -63,6 +63,11 @@
   .v-num { font-family: var(--font-mono); font-weight: 800; font-size: 17px; text-anchor: middle; }
   .v-sm { font-size: 11px; }
   .v-lab { font-size: 8px; fill: var(--text-secondary); text-anchor: middle; }
+  .range-btns { display: flex; gap: 6px; margin: -2px 0 10px; }
+  .range-btns button { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); background: rgba(255,255,255,0.05);
+    border: 1px solid var(--hairline); border-radius: 999px; padding: 3px 12px; cursor: pointer; transition: background .15s, color .15s; }
+  .range-btns button:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .range-btns button.active { background: var(--sp-color-soft); border-color: var(--sp-color); color: #fff; }
   .chart-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin: 0 0 10px; }
   .byline { color: var(--text-muted); font-size: 14px; margin-top: -2px; margin-bottom: 18px; }
 </style>
@@ -201,7 +206,7 @@
         buildout without carrying a traditional "AI stock's" volatility, which is exactly what a
         risk-adjusted score is built to reward.
       </p>
-      <div class="chart-card"><div class="chart-title">Comfort Systems (FIX): weekly closing price, Sep 2021 – Sep 2026</div><canvas id="chart-fix" style="--h:300px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Comfort Systems (FIX): weekly closing price (use the range buttons, hover for details)</div><canvas id="chart-fix" style="--h:300px"></canvas></div>
     </section>
 
     <section class="finding card">
@@ -218,7 +223,7 @@
         chip names is itself a finding: the AI-driven memory/storage cycle of 2023–2026 was steady enough,
         for these particular companies, to read as "consistent" rather than merely "volatile and lucky."
       </p>
-      <div class="chart-card"><div class="chart-title">Micron (MU): weekly closing price, Sep 2021 – Sep 2026</div><canvas id="chart-mu" style="--h:300px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Micron (MU): weekly closing price (use the range buttons, hover for details)</div><canvas id="chart-mu" style="--h:300px"></canvas></div>
     </section>
 
     <section class="finding card">
