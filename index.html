@@ -78,6 +78,33 @@
   .calc__gain.up { color: var(--good); } .calc__gain.down { color: var(--critical); }
   .calc .calc__note { margin: 14px 0 0; font-size: 12px; color: var(--text-muted); max-width: none; }
 
+  /* ---- Sector heatmap ---- */
+  .hm__pool { display: flex; gap: 6px; margin: -2px 0 10px; }
+  .hm__pool button { font: 600 11px var(--font-mono); color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--hairline);
+    border-radius: 999px; padding: 3px 12px; cursor: pointer; }
+  .hm__pool button:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .hm__pool button.active { background: var(--sp-color-soft); border-color: var(--sp-color); color: #fff; }
+  .hm__map { position: relative; height: 330px; border-radius: 8px; overflow: hidden; }
+  .hm__tile { position: absolute; box-sizing: border-box; border: 2px solid var(--surface-1); border-radius: 6px; padding: 8px 10px; text-align: left; cursor: pointer;
+    display: flex; flex-direction: column; gap: 2px; overflow: hidden; color: #fff; font-family: var(--font-ui);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.55); transition: filter .15s, box-shadow .15s; }
+  .hm__tile:hover, .hm__tile:focus-visible { filter: brightness(1.18); }
+  .hm__tile.sel { box-shadow: inset 0 0 0 2px #fff; }
+  .hm__sec { font-size: 12px; font-weight: 700; line-height: 1.2; }
+  .hm__ret { font-family: var(--font-mono); font-size: 17px; font-weight: 800; }
+  .hm__n { font-size: 11px; opacity: 0.85; }
+  .hm__legend { display: flex; align-items: center; gap: 8px; margin: 10px 0 12px; font: 11px var(--font-mono); color: var(--text-muted); }
+  .hm__legend i { flex: 1; max-width: 240px; height: 8px; border-radius: 4px;
+    background: linear-gradient(90deg, rgb(230,103,103) 0%, rgb(58,63,77) 17%, rgb(23,163,74) 100%); }
+  .hm__detail { padding: 12px 14px; border-radius: 10px; background: rgba(0,0,0,0.25); border: 1px solid var(--hairline); min-height: 92px; }
+  .hm__dname { font-weight: 800; font-size: 14px; margin-bottom: 8px; }
+  .hm__dname span { font-weight: 400; font-size: 12px; color: var(--text-muted); margin-left: 8px; }
+  .hm__dgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .hm__dgrid em { display: block; font-style: normal; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+  .hm__dgrid b { font-family: var(--font-mono); font-size: 15px; }
+  .hm__links a { color: var(--text-primary); text-decoration: underline dotted; }
+  .hm__err { color: var(--critical); font-size: 13px; padding: 12px; }
+
   /* ---- Race ---- */
   .race__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
   .race__date { font-family: var(--font-mono); font-size: 22px; font-weight: 800; }
@@ -435,6 +462,29 @@
       </div>
     </section>
 
+    <section class="finding card">
+      <h2>11. Tech Climbed Highest, but Energy Was the Steadiest Sector in the S&amp;P 500</h2>
+      <p>
+        Group every eligible S&amp;P 500 stock by sector and average each group (equal-weighted). Information
+        Technology, with 72 stocks, averaged <strong>+249%</strong> over five years, Energy (21 stocks) averaged
+        <strong>+154%</strong>, and Industrials (79) <strong>+134%</strong>. At the other end, Consumer Staples
+        gained just 12% and Real Estate lost 3% on average.
+      </p>
+      <p>
+        Adjusted for bumpiness, the ranking changes: Energy has the highest average consistency score of any sector
+        (0.0915, versus 0.0777 for tech and 0.0656 for Industrials), because its stocks averaged 4.9% weekly volatility
+        against 5.7% for tech. Switch to the Nasdaq 100 to see tech fill 38 of its 98 stocks; hover or click a tile
+        for the details.
+      </p>
+      <div class="chart-card" id="heatmap">
+        <div class="chart-title">Sector heatmap: tile size = number of stocks, color = average 5-year return</div>
+        <div class="hm__pool"><button type="button" class="active" data-pool="S&amp;P 500">S&amp;P 500</button><button type="button" data-pool="Nasdaq 100">Nasdaq 100</button></div>
+        <div class="hm__map"></div>
+        <div class="hm__legend"><span>−50%</span><i></i><span>+250%</span></div>
+        <div class="hm__detail"></div>
+      </div>
+    </section>
+
   </div>
 
   <section class="closing card">
@@ -499,5 +549,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="js/report.js"></script>
 <script src="js/report-extras.js"></script>
+<script src="js/report-heatmap.js"></script>
 </body>
 </html>
