@@ -38,8 +38,10 @@
         plugins: { legend: { display: false }, tooltip: { callbacks: {
           label: ctx => `${label}: $${ctx.raw.toFixed(2)}`
         } } },
-        scales: { x: { ticks: { color: COLORS.axis, maxTicksLimit: 7, font: { size: 9 } }, grid: { display: false } },
-                  y: { ...axisColor(), ticks: { color: COLORS.axis, font: { size: 9 }, callback: v => "$" + v } } }
+        scales: { x: { ticks: { color: COLORS.axis, maxTicksLimit: 7, font: { size: 9 } }, grid: { display: false },
+                       title: { display: true, text: "Week", color: COLORS.axis, font: { size: 10 } } },
+                  y: { ...axisColor(), title: { display: true, text: "Closing price (US$)", color: COLORS.axis, font: { size: 10 } },
+                       ticks: { color: COLORS.axis, font: { size: 9 }, callback: v => "$" + v } } }
       })
     });
   }
