@@ -4,13 +4,14 @@
    - A single stock can be ANY of the 517 tickers: once the dashboard's price panel (js/data.js) has loaded, its
      value is amount x close / first close, aligned to the same weeks (a stock that starts trading later stays at
      the amount until its first week). Until then, the 45 stocks in data/top25_growth_curves.csv are available.
-   - Below the cards: a growth chart (through the chosen date) and a copyable plain-English summary. */
+   - Below the cards: "what if you picked the worst?" (the weakest eligible stock in each index) and a growth chart through the chosen date. */
 (function () {
   const root = document.getElementById("calc");
   if (!root) return;
   const $ = id => document.getElementById(id);
   const amount = $("calc-amount"), slider = $("calc-week"), stockIn = $("calc-stock"), stockMsg = $("calc-stock-msg");
-  const out = $("calc-out"), dateLabel = $("calc-date"), list = $("calc-stock-list"), summaryEl = $("calc-summary"), copyBtn = $("calc-copy");
+  const out = $("calc-out"), dateLabel = $("calc-date"), list = $("calc-stock-list");
+  const worstBox = $("calc-worst-box"), worstOut = $("calc-worst");
   const usd = v => "$" + Math.round(v).toLocaleString("en-US");
   const fmtPct = r => (r >= 0 ? "+" : "−") + Math.abs(r * 100).toLocaleString("en-US", { maximumFractionDigits: 0 }) + "%";
   const SP = "#3987e5", NDX = "#d95926", BOTH = "#9085e9";
@@ -46,6 +47,22 @@
     return { ticker, name: m[0], group: m[1], mult: curves[ticker].map(v => v / 10000), firstDate: null };
   }
   function buildStock(ticker) { return panelReady ? buildFromPanel(ticker) : buildFromCurves(ticker); }
+
+  // "What if you'd picked the worst?": the eligible stock with the lowest full-period return in each index
+  // (same eligibility rule as the rankings: at least 240 weekly returns). Needs the full price panel.
+  let worst = [];
+  function computeWorst() {
+    const stats = SD.computeStats({}).stats.filter(s => s.eligible);
+    const pick = members => stats.filter(s => members.includes(s.indexMembership)).sort((a, b) => a.cumulativeReturn - b.cumulativeReturn)[0];
+    const sp = pick(["S&P 500", "Both"]), nq = pick(["Nasdaq 100", "Both"]);
+    worst = [];
+    if (sp && nq && sp.ticker === nq.ticker) worst.push({ label: "Worst stock in both indices", stock: buildFromPanel(sp.ticker) });
+    else {
+      if (sp) worst.push({ label: "Worst S&P 500 stock", stock: buildFromPanel(sp.ticker) });
+      if (nq) worst.push({ label: "Worst Nasdaq 100 stock", stock: buildFromPanel(nq.ticker) });
+    }
+    worst = worst.filter(w => w.stock);
+  }
 
   // Accepts a ticker ("fix") or part of a company name ("comfort"); returns the ticker or null.
   function resolve(text) {
@@ -92,8 +109,17 @@
         <div class="calc__value">${usd(v)}</div>
         <div class="calc__gain ${v >= amt ? "up" : "down"}">${amt ? fmtPct(v / amt - 1) : "—"}</div>
       </div>`).join("");
+    worstBox.hidden = !worst.length;
+    worstOut.innerHTML = worst.map(w => {
+      const v = amt * w.stock.mult[i];
+      return `
+      <div class="calc__card calc__card--worst">
+        <div class="calc__label">${w.label} · ${w.stock.ticker} (${w.stock.name})</div>
+        <div class="calc__value">${usd(v)}</div>
+        <div class="calc__gain ${v >= amt ? "up" : "down"}">${amt ? fmtPct(v / amt - 1) : "—"}</div>
+      </div>`;
+    }).join("");
     renderChart(amt, i);
-    renderSummary(amt, i);
   }
 
   function renderChart(amt, i) {
@@ -104,6 +130,8 @@
     const sets = groups.map((g, k) => line(g.label, g.values.slice(0, i + 1).map(v => amt * v / 10000), g.color,
       k % 2 ? { borderDash: [5, 4], borderWidth: 1.5 } : {}));
     if (stock) sets.push(line(stock.ticker, stock.mult.slice(0, i + 1).map(v => amt * v), GROUP_COLOR[stock.group] === BOTH ? BOTH : "#e377c2", { borderWidth: 3 }));
+    worst.forEach(w => sets.push(line(w.label + " (" + w.stock.ticker + ")", w.stock.mult.slice(0, i + 1).map(v => amt * v), "#e66767",
+      { borderWidth: 2, borderDash: [2, 3] })));
     if (!chart) {
       chart = new Chart($("calc-chart"), {
         type: "line",
@@ -131,36 +159,12 @@
     }
   }
 
-  function renderSummary(amt, i) {
-    const d0 = dates[0], d1 = dates[i], a = usd(amt);
-    let s;
-    if (stock) {
-      const idx = stock.group === "ndx" ? 3 : 1;   // compare with all eligible tickers in the stock's index (S&P 500 unless Nasdaq-100-only)
-      const base = groups[idx], baseV = amt * base.values[i] / 10000, v = amt * stock.mult[i];
-      s = `${a} invested in ${stock.ticker} (${stock.name}) on ${d0} would have been worth ${usd(v)} on ${d1} (${fmtPct(amt ? v / amt - 1 : 0)}). ` +
-          `Spread equally across all ${idx === 3 ? "98 eligible Nasdaq 100" : "493 eligible S&P 500"} stocks it would have been ${usd(baseV)} (${fmtPct(amt ? baseV / amt - 1 : 0)}).`;
-    } else {
-      const top = amt * groups[0].values[i] / 10000, all = amt * groups[1].values[i] / 10000;
-      s = `${a} invested in the S&P 500's 25 most consistent gainers on ${d0} would have been worth ${usd(top)} on ${d1} (${fmtPct(amt ? top / amt - 1 : 0)}), versus ${usd(all)} (${fmtPct(amt ? all / amt - 1 : 0)}) for all 493 eligible S&P 500 stocks.`;
-    }
-    summaryEl.textContent = s + " (Equal-weighted, buy-and-hold; source: Consistent Gainers, S&P 500 vs Nasdaq 100.)";
-  }
-
-  copyBtn.addEventListener("click", () => {
-    const text = summaryEl.textContent;
-    const done = () => { copyBtn.textContent = "Copied ✓"; setTimeout(() => { copyBtn.textContent = "Copy"; }, 1600); };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
-    else fallback();
-    function fallback() {
-      const ta = document.createElement("textarea");
-      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
-      try { document.execCommand("copy"); done(); } catch (e) { copyBtn.textContent = "Press Ctrl+C"; }
-      document.body.removeChild(ta);
-    }
-  });
-
   amount.addEventListener("input", render);
   slider.addEventListener("input", render);
+  // A datalist only suggests options that match what's already typed, so a pre-filled "FIX" would offer nothing
+  // else. Clear the box when it gets focus (restoring the previous entry if left empty) so every stock is suggested.
+  stockIn.addEventListener("focus", () => { stockIn.dataset.prev = stockIn.value; stockIn.value = ""; });
+  stockIn.addEventListener("blur", () => { if (!stockIn.value.trim() && stockIn.dataset.prev) { stockIn.value = stockIn.dataset.prev; pickStock(); render(); } });
   stockIn.addEventListener("input", () => { pickStock(); render(); });
   stockIn.addEventListener("change", () => { pickStock(); render(); });
 
@@ -187,7 +191,7 @@
 
   // Once the dashboard's full price panel is loaded, any of the 517 tickers works.
   if (SD) SD.load().then(() => {
-    groupsReady.then(() => { panelReady = true; setUniverse(); pickStock(); render(); });
+    groupsReady.then(() => { panelReady = true; computeWorst(); setUniverse(); pickStock(); render(); });
   }).catch(() => {});
 
   // Deep link from the report: dashboard.html?tab=calculator opens this tab.

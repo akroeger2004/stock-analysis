@@ -186,16 +186,14 @@
         <label>Compare with any stock <input id="calc-stock" type="text" list="calc-stock-list" value="FIX" autocomplete="off" spellcheck="false" placeholder="Ticker or company"><datalist id="calc-stock-list"></datalist><span id="calc-stock-msg" class="calc__msg"></span></label>
       </div>
       <div class="calc__out" id="calc-out"></div>
+      <div class="calc__worst" id="calc-worst-box" hidden>
+        <div class="calc__worst-title">What if you’d picked the worst?</div>
+        <p class="calc__worst-sub">The weakest eligible stock in each index over the full five years, and what your amount would have become in it — the flip side of the top-25 picks above.</p>
+        <div class="calc__out" id="calc-worst"></div>
+      </div>
       <div class="calc__chart">
         <div class="calc__chart-title">Your money over time</div>
         <div class="calc__chart-box"><canvas id="calc-chart"></canvas></div>
-      </div>
-      <div class="calc__share">
-        <div class="calc__share-label">Shareable summary</div>
-        <div class="calc__share-row">
-          <p class="calc__summary" id="calc-summary"></p>
-          <button type="button" class="reset-btn" id="calc-copy">Copy</button>
-        </div>
       </div>
       <p class="calc__note">Equal-weighted, buy-and-hold, no dividends, taxes or costs — and the top 25 were picked in hindsight, so this is what happened, not a strategy.</p>
     </div>

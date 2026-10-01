@@ -756,19 +756,19 @@ footer.site-footer {
 :root[data-theme="light"] .calc__controls input[type=text], :root[data-theme="light"] .calc__controls select { background: #fff; color: var(--text-primary); }
 :root[data-theme="light"] .calc__card { background: rgba(255,255,255,0.7); }
 
-/* Calculator additions: any-stock search, growth chart, shareable summary */
+/* Calculator additions: any-stock search, "worst pick" cards, growth chart */
 .calc__controls input[list] { text-transform: uppercase; }
 .calc__controls input[list]::placeholder { text-transform: none; font-weight: 400; }
 .calc__msg { min-height: 14px; font-size: 11px; color: var(--critical); }
 .calc__msg.info { color: var(--text-muted); }
 .calc__chart { margin-top: 20px; padding: 16px 18px; border-radius: 12px; border: 1px solid var(--hairline); background: rgba(var(--shade), 0.18); }
-.calc__chart-title, .calc__share-label { font-size: 12.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px; }
+.calc__chart-title { font-size: 12.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px; }
 .calc__chart-box { position: relative; height: 320px; }
-.calc__share { margin-top: 16px; }
-.calc__share-row { display: flex; gap: 14px; align-items: flex-start; }
-.calc__summary { flex: 1; margin: 0; padding: 12px 14px; border-radius: 10px; border: 1px dashed var(--hairline); background: rgba(var(--shade), 0.22);
-  font-size: 13.5px; line-height: 1.55; color: var(--text-primary); }
-.calc__share-row .reset-btn { white-space: nowrap; min-width: 84px; }
 :root[data-theme="light"] .calc__chart { background: rgba(255,255,255,0.55); }
-:root[data-theme="light"] .calc__summary { background: rgba(255,255,255,0.7); }
-@media (max-width: 640px) { .calc__share-row { flex-direction: column; } .calc__chart-box { height: 260px; } }
+@media (max-width: 640px) { .calc__chart-box { height: 260px; } }
+.calc__worst { margin-top: 20px; }
+.calc__worst-title { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+.calc__worst-sub { margin: 0 0 12px; font-size: 12.5px; color: var(--text-secondary); max-width: 760px; line-height: 1.5; }
+.calc__card--worst { border-top-color: var(--critical); }
+.calc__worst[hidden] { display: none; }
+.calc__worst .calc__out { grid-template-columns: repeat(auto-fit, minmax(230px, 340px)); }
