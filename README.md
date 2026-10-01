@@ -49,21 +49,23 @@ How derived numbers are computed:
 
 | File | What it does |
 |---|---|
-| `index.html` | The report page: title, byline, a summary, 5 headline numbers, 9 findings with charts, and a closing data-methodology section. Its ticker tape links directly into the dashboard's Stock Explorer for that ticker. |
+| `index.html` | The report page: title, byline, a summary, 5 headline numbers, 10 findings with charts (plus a money calculator and an animated top-25 race), a sticky section index, and a closing data-methodology section. Its ticker tape links directly into the dashboard's Stock Explorer for that ticker. |
 | `dashboard.html` | The interactive dashboard, split into two tabs so no single view is overloaded: **Overview** (shared filters — year range, sector, ticker search, view, measure, breakdown — 4 combined S&P-vs-Nasdaq charts/lists, a sortable table, and a reset button) and **Stock Explorer** (a Top-25 symbol list per index — searchable across all 517 tickers, showing each one's true consistency rank even outside the top 25 — a TradingView-style focus price chart with a 6M/1Y/2Y/5Y range toggle, big-move markers, biggest-gain/decline lists, and an optional second ticker overlaid — both indexed to 100 at the start of the range — to compare growth rates directly). Both pages' ticker tape is clickable, jumping straight to that ticker in Stock Explorer. |
 | `css/style.css` | Shared dark finance-themed styling (nav bar, ticker tape, cards, filters, tables, ranked lists, Stock Explorer) for both pages. |
 | `js/data.js` | Loads and parses `data/sp500_nasdaq100_weekly_prices.csv` in the browser and computes per-ticker consistency stats on demand. Used only by `dashboard.html`. |
 | `js/dashboard.js` | All dashboard interactivity: the Overview tab's filters/charts/table, and the Stock Explorer tab's symbol list, focus chart, and stats. |
 | `js/report.js` | Builds the report page's 10 interactive charts (hover tooltips, price-range buttons, click-through to the dashboard) from pre-computed numbers (see the scripts below for how each number was derived). |
+| `js/report-extras.js` | Report-page extras: reading-progress bar, section index, scroll reveal, count-up headline tiles, hover-link between Finding 5's text and its scatter, the "what would your money have become" calculator, and the animated top-25 race (Finding 10). |
 | `data/sp500_nasdaq100_weekly_prices.csv` | The panel dataset: 133,557 rows, one per ticker per week (2021-09 to 2026-09), with sector/index-membership flags and OHLCV + weekly-return numbers. Fetched directly by `dashboard.html`. |
 | `data/sp500_top25_consistent_gainers.csv` | The 25 most consistent S&P 500 gainers by risk-adjusted score, with their stats. |
 | `data/nasdaq100_top25_consistent_gainers.csv` | The 25 most consistent Nasdaq 100 gainers by risk-adjusted score, with their stats. |
 | `data/growth_of_10k.csv` | Weekly value of $10,000 split equally across each group (S&P 500 top 25, S&P 500 all eligible, Nasdaq 100 top 25, Nasdaq 100 all eligible), buy-and-hold with no rebalancing; feeds the "growth of $10,000" chart in Finding 7. |
+| `data/top25_growth_curves.csv` | Value of $10,000 put into each of the 45 stocks on either top-25 list in Sep 2021, one column per ticker and one row per week; feeds the calculator and the race. |
 | `scripts/fetch_weekly_prices.ps1` | Builds the S&P 500 + Nasdaq 100 ticker universe and fetches 5 years of weekly OHLCV for all 517 tickers from Yahoo Finance, producing the main panel CSV. |
 | `scripts/fix_sector_taxonomy.ps1` | One-time correction of the 14 Nasdaq-only tickers' mismatched sector labels to standard GICS sectors. |
 | `scripts/rank_consistent_gainers.ps1` | Computes the risk-adjusted consistency score for every ticker and writes the two top-25 CSVs. |
 | `scripts/compute_report_stats.ps1` | Computes the additional statistics (sector breakdowns, volatility comparisons, excluded-ticker list, extreme single-week moves) used to write the report's findings. |
-| `scripts/compute_growth_of_10k.ps1` | Builds `data/growth_of_10k.csv` from the panel and the two top-25 lists. The last row equals $10,000 x (1 + average cumulative return) for each group. |
+| `scripts/compute_growth_of_10k.ps1` | Builds `data/growth_of_10k.csv` and `data/top25_growth_curves.csv` from the panel and the two top-25 lists. The last row equals $10,000 x (1 + average cumulative return) for each group. |
 | `scripts/dev-server.ps1` | Minimal local static file server for previewing the site (`pwsh scripts/dev-server.ps1`, then open `http://localhost:8766/`). |
 
 ## Reproducing the data

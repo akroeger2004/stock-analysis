@@ -44,6 +44,63 @@
     .finding .chart-stack .chart-card { grid-column: auto; grid-row: auto; }
   }
   .chart-stack { display: flex; flex-direction: column; gap: 16px; }
+
+  /* ---- Reading aids ---- */
+  .read-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 60; background: linear-gradient(90deg, var(--sp-color), var(--ndx-color)); pointer-events: none; }
+  .toc { position: sticky; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 22px; padding: 8px 12px;
+    background: rgba(9,11,18,0.82); backdrop-filter: blur(10px); border: 1px solid var(--hairline); border-radius: 999px; width: fit-content; max-width: 100%; }
+  .toc a { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); text-decoration: none; min-width: 28px; text-align: center;
+    padding: 4px 9px; border-radius: 999px; transition: background .15s, color .15s; }
+  .toc a:hover { background: rgba(255,255,255,0.10); color: #fff; }
+  .toc a.active { background: var(--sp-color-soft); box-shadow: inset 0 0 0 1px var(--sp-color); color: #fff; }
+  .finding, .closing { scroll-margin-top: 130px; }
+  html.js-reveal .finding.reveal { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; }
+  html.js-reveal .finding.reveal.in { opacity: 1; transform: none; }
+  .tk { color: #fff; border-bottom: 1px dotted var(--text-muted); cursor: help; transition: background .15s; }
+  .tk:hover { background: rgba(255,255,255,0.14); }
+
+  /* ---- Calculator ---- */
+  .calc { grid-column: 1 / -1; margin-top: 22px; padding: 20px 22px; border-radius: 12px; border: 1px solid var(--hairline);
+    background: linear-gradient(135deg, rgba(57,135,229,0.10), rgba(217,89,38,0.08)); }
+  .calc__title { font-size: 15px; font-weight: 800; margin-bottom: 14px; }
+  .calc__controls { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-end; margin-bottom: 16px; }
+  .calc__controls label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .calc__controls input[type=text], .calc__controls select { font: 700 15px var(--font-mono); color: #fff; background: rgba(0,0,0,0.35);
+    border: 1px solid var(--hairline); border-radius: 8px; padding: 8px 10px; min-width: 150px; }
+  .calc__money { display: flex; align-items: center; gap: 4px; } .calc__money b { font-family: var(--font-mono); }
+  .calc__date { font-family: var(--font-mono); color: #fff; font-weight: 700; }
+  .calc__controls input[type=range] { width: 240px; accent-color: var(--sp-color); }
+  .calc__out { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .calc__card { padding: 14px 16px; border-radius: 10px; background: rgba(0,0,0,0.30); border: 1px solid var(--hairline); border-top: 3px solid var(--c); }
+  .calc__label { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px; }
+  .calc__value { font-family: var(--font-mono); font-size: 22px; font-weight: 800; }
+  .calc__gain { font-family: var(--font-mono); font-size: 12.5px; margin-top: 4px; }
+  .calc__gain.up { color: var(--good); } .calc__gain.down { color: var(--critical); }
+  .calc .calc__note { margin: 14px 0 0; font-size: 12px; color: var(--text-muted); max-width: none; }
+
+  /* ---- Race ---- */
+  .race__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .race__date { font-family: var(--font-mono); font-size: 22px; font-weight: 800; }
+  .race__leader { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
+  .race__area { position: relative; overflow: hidden; }
+  .race__row { position: absolute; left: 0; right: 0; top: 0; height: 30px; display: grid; grid-template-columns: 52px 1fr 84px; align-items: center; gap: 8px;
+    text-decoration: none; color: var(--text-primary); font-family: var(--font-mono); font-size: 12.5px;
+    transition: transform .45s ease, opacity .3s ease; }
+  .race__row b { font-weight: 700; }
+  .race__track { display: block; height: 18px; background: rgba(255,255,255,0.04); border-radius: 4px; overflow: hidden; }
+  .race__track i { display: block; height: 100%; border-radius: 4px; transition: width .45s ease; }
+  .race__row.lead .race__track { box-shadow: 0 0 0 1.5px #fff; }
+  .race__row em { font-style: normal; text-align: right; color: var(--text-secondary); }
+  .race__row:hover { background: rgba(255,255,255,0.06); }
+  .race__controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+  .race__controls button, .race__controls select { font: 600 12px var(--font-mono); color: var(--text-primary); background: rgba(255,255,255,0.07);
+    border: 1px solid var(--hairline); border-radius: 999px; padding: 5px 13px; cursor: pointer; }
+  .race__controls button:hover { background: rgba(255,255,255,0.14); }
+  .race__controls input[type=range] { flex: 1; min-width: 140px; accent-color: var(--sp-color); }
+  .race__legend { display: flex; gap: 16px; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); }
+  .race__legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .race__err { color: var(--critical); font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) { .race__row, .race__track i { transition: none; } }
   /* ---- Hero header ---- */
   .hero { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: center; margin: 4px 0 30px; padding: 34px 32px;
     border-radius: var(--radius); border: 1px solid var(--hairline);
@@ -303,6 +360,16 @@
         <div class="chart-card"><div class="chart-title">Average 5-year cumulative return: top 25 most consistent vs. all eligible tickers</div><div class="chart-box" style="height:320px"><canvas id="chart-outperformance"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Growth of $10,000 invested Sep 2021 (equal-weighted; click the legend to hide a line)</div><div class="chart-box" style="height:360px"><canvas id="chart-growth"></canvas></div></div>
       </div>
+      <div class="calc" id="calc">
+        <div class="calc__title">Try it: what would your money have become?</div>
+        <div class="calc__controls">
+          <label>Amount invested Sep 27, 2021 <span class="calc__money"><b>$</b><input id="calc-amount" type="text" inputmode="numeric" value="10,000"></span></label>
+          <label>Value on <span id="calc-date" class="calc__date"></span><input id="calc-week" type="range" min="0" max="262" value="262"></label>
+          <label>Compare with a single stock <select id="calc-stock"><option>FIX</option></select></label>
+        </div>
+        <div class="calc__out" id="calc-out"></div>
+        <p class="calc__note">Equal-weighted, buy-and-hold, no dividends, taxes or costs — and the top 25 were picked in hindsight, so this is what happened, not a strategy.</p>
+      </div>
     </section>
 
     <section class="finding card">
@@ -337,6 +404,35 @@
         relative to a stock's own volatility rather than by its raw return alone.
       </p>
       <div class="chart-card"><div class="chart-title">Best and worst single-week returns among all 133,557 weekly observations</div><div class="chart-box" style="height:300px"><canvas id="chart-extremes"></canvas></div></div>
+    </section>
+
+    <section class="finding card">
+      <h2>10. The #1 Spot Changed Hands 35 Times Before Comfort Systems Took It for Good</h2>
+      <p>
+        Put $10,000 into each of the 45 stocks that appear on either top-25 list in September 2021 and ask which
+        one is ahead each week. Across the 262 weeks after the start, the lead changed hands <strong>35 times</strong>
+        between <strong>11 different stocks</strong> — Vistra (VST) held it for 64 weeks, Constellation Energy (CEG)
+        for 28, Nvidia (NVDA) for 26. Even Comfort Systems (FIX), which led the most weeks overall (77), spent long
+        stretches behind.
+      </p>
+      <p>
+        FIX has been #1 every week since October 20, 2025 — 51 weeks in a row — and finished at
+        <strong>$223,995</strong>, ahead of Micron (MU) at $152,455. Its best week was May 11, 2026, when the
+        original $10,000 was worth $269,071. Press play and watch the lead change; click any bar to open that
+        stock in the dashboard.
+      </p>
+      <div class="chart-card" id="race">
+        <div class="chart-title">Race of the top 10, by value of $10,000 invested in each stock in Sep 2021</div>
+        <div class="race__head"><span id="race-date" class="race__date">—</span><span id="race-leader" class="race__leader"></span></div>
+        <div class="race__area"></div>
+        <div class="race__controls">
+          <button type="button" id="race-play">▶ Play</button>
+          <button type="button" id="race-restart">↺ Restart</button>
+          <input type="range" id="race-scrub" min="0" max="262" value="262" aria-label="Week">
+          <select id="race-speed" aria-label="Speed"><option value="140">1×</option><option value="70" selected>2×</option><option value="35">4×</option></select>
+        </div>
+        <div class="race__legend"><span><i style="background:#3987e5"></i>S&amp;P 500 only</span><span><i style="background:#9085e9"></i>In both indices</span></div>
+      </div>
     </section>
 
   </div>
@@ -385,6 +481,15 @@
       <li>All averages reported (e.g. "avg cumulative return," "avg volatility") are simple, equal-weighted
         means across the tickers in the stated group — no market-cap weighting is applied anywhere in this
         report or the dashboard.</li>
+      <li><strong>Growth of $10,000</strong> (Finding 7 chart and calculator) = $10,000 split equally across a
+        group's tickers at the first week of the panel (Sep 27, 2021) and never rebalanced: each ticker's value is
+        its close ÷ its first close, and the group value is 10,000 × the average of those ratios. A ticker whose
+        data starts later stays at its starting value until its first week. Dividends, taxes, and trading costs are
+        ignored, and the top 25 are chosen with hindsight.</li>
+      <li><strong>The race</strong> (Finding 10) uses the same rule for a single stock: $10,000 in that stock at the
+        start, valued each week at 10,000 × close ÷ first close. "Led" means highest value that week among the 45
+        stocks on either top-25 list; the first week is excluded because every stock is tied at $10,000. Both
+        series are rebuilt by <code>scripts/compute_growth_of_10k.ps1</code>.</li>
     </ul>
   </section>
 
@@ -393,5 +498,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="js/report.js"></script>
+<script src="js/report-extras.js"></script>
 </body>
 </html>
