@@ -97,7 +97,7 @@
     border: 1px solid var(--hairline); border-radius: 999px; padding: 5px 13px; cursor: pointer; }
   .race__controls button:hover { background: rgba(255,255,255,0.14); }
   .race__controls input[type=range] { flex: 1; min-width: 140px; accent-color: var(--sp-color); }
-  .race__legend { display: flex; gap: 16px; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); }
+  .race__legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); }
   .race__legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
   .race__err { color: var(--critical); font-size: 13px; }
   @media (prefers-reduced-motion: reduce) { .race__row, .race__track i { transition: none; } }
@@ -431,7 +431,7 @@
           <input type="range" id="race-scrub" min="0" max="262" value="262" aria-label="Week">
           <select id="race-speed" aria-label="Speed"><option value="140">1×</option><option value="70" selected>2×</option><option value="35">4×</option></select>
         </div>
-        <div class="race__legend"><span><i style="background:#3987e5"></i>S&amp;P 500 only</span><span><i style="background:#9085e9"></i>In both indices</span></div>
+        <div class="race__legend" id="race-legend" aria-label="Bar colour = sector"></div>
       </div>
     </section>
 

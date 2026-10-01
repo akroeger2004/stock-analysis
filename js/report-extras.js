@@ -12,6 +12,9 @@
   // Company + index group for the 45 tickers on either top-25 list (from data/*_top25_consistent_gainers.csv).
   const META = {CEG:["Constellation Energy","both"],AAPL:["Apple Inc.","both"],MAR:["Marriott International","both"],HWM:["Howmet Aerospace","sp"],APP:["AppLovin","both"],MCK:["McKesson Corporation","sp"],JBL:["Jabil","sp"],GILD:["Gilead Sciences","both"],FIX:["Comfort Systems USA","sp"],LLY:["Lilly (Eli)","sp"],VLO:["Valero Energy","sp"],VRTX:["Vertex Pharmaceuticals","both"],AMAT:["Applied Materials","both"],STX:["Seagate Technology","both"],WMT:["Walmart","both"],AVGO:["Broadcom","both"],GE:["GE Aerospace","sp"],TRGP:["Targa Resources","sp"],GOOG:["Alphabet Inc. (Class C)","both"],AMD:["Advanced Micro Devices","both"],CRWD:["CrowdStrike","both"],CTAS:["Cintas","both"],GOOGL:["Alphabet Inc. (Class A)","both"],MU:["Micron Technology","both"],MPC:["Marathon Petroleum","sp"],VST:["Vistra Corp.","sp"],PANW:["Palo Alto Networks","both"],PLTR:["Palantir Technologies","both"],APH:["Amphenol","sp"],DELL:["Dell Technologies","sp"],KLAC:["KLA Corporation","both"],FLEX:["Flex Ltd.","sp"],WDC:["Western Digital","both"],ORLY:["O'Reilly Automotive","both"],CAH:["Cardinal Health","sp"],CAT:["Caterpillar Inc.","sp"],EME:["Emcor","sp"],PWR:["Quanta Services","sp"],ANET:["Arista Networks","sp"],NVDA:["Nvidia","both"],IBKR:["Interactive Brokers","sp"],LITE:["Lumentum","sp"],LRCX:["Lam Research","both"],MRVL:["Marvell Technology","both"],COST:["Costco","both"]};
 
+  // Sector of each of the 45 tickers (from data/*_top25_consistent_gainers.csv) and the race's bar colors.
+  const SECTOR = {HWM:"Industrials",WDC:"Information Technology",CAH:"Health Care",ANET:"Information Technology",APH:"Information Technology",GOOGL:"Communication Services",EME:"Industrials",LLY:"Health Care",AMD:"Information Technology",CRWD:"Information Technology",FIX:"Industrials",MCK:"Health Care",PWR:"Industrials",NVDA:"Information Technology",WMT:"Consumer Staples",GILD:"Health Care",ORLY:"Consumer Discretionary",FLEX:"Information Technology",LITE:"Information Technology",JBL:"Information Technology",MRVL:"Information Technology",CAT:"Industrials",AAPL:"Information Technology",COST:"Consumer Staples",LRCX:"Information Technology",MU:"Information Technology",TRGP:"Energy",VST:"Utilities",PLTR:"Information Technology",AMAT:"Information Technology",STX:"Information Technology",GE:"Industrials",APP:"Communication Services",VRTX:"Health Care",KLAC:"Information Technology",MAR:"Consumer Discretionary",GOOG:"Communication Services",IBKR:"Financials",VLO:"Energy",CEG:"Utilities",PANW:"Information Technology",MPC:"Energy",DELL:"Information Technology",AVGO:"Information Technology",CTAS:"Industrials"};
+  const SECTOR_COLORS = {"Information Technology":"#3987e5","Industrials":"#d95926","Health Care":"#2fb36d","Energy":"#fab219","Communication Services":"#9085e9","Utilities":"#1fb5c9","Consumer Staples":"#e377c2","Consumer Discretionary":"#c9a86a","Financials":"#9ca3af"};
   /* ---------- Reading aids ---------- */
 
   // Thin reading-progress bar along the top edge.
@@ -177,14 +180,15 @@
     loadCurves.then(data => {
       const n = data.dates.length, rows = {};
       data.tickers.forEach(t => {
-        const g = META[t] ? META[t][1] : "both";
         const a = document.createElement("a");
         a.className = "race__row"; a.href = "dashboard.html?ticker=" + encodeURIComponent(t);
         a.title = (META[t] ? META[t][0] : t) + " - open in the dashboard";
-        a.innerHTML = `<b>${t}</b><span class="race__track"><i style="background:${GROUP_COLORS[g]}"></i></span><em></em>`;
+        a.innerHTML = `<b>${t}</b><span class="race__track"><i style="background:${SECTOR_COLORS[SECTOR[t]] || "#9ca3af"}"></i></span><em></em>`;
         a.style.opacity = 0; area.appendChild(a);
         rows[t] = { el: a, fill: $("i", a), val: $("em", a) };
       });
+      const legend = $("#race-legend", raceBox);
+      legend.innerHTML = Object.keys(SECTOR_COLORS).map(s => `<span><i style="background:${SECTOR_COLORS[s]}"></i>${s}</span>`).join("");
       scrub.max = n - 1;
       let idx = 0, timer = null;
       function draw(i) {
