@@ -1,13 +1,11 @@
 /* Report page extras: reading aids (progress bar, section index, scroll reveal, count-up tiles),
-   hover-linking between the Finding 5 text and its chart, the "what would your money have become"
-   calculator, and the animated top-25 race. Runs after report.js. Data: data/growth_of_10k.csv
-   (group lines, embedded in report.js) and data/top25_growth_curves.csv (per-stock lines, fetched here). */
+   hover-linking between the Finding 5 text and its chart, and the animated top-25 race (Finding 10).
+   Runs after report.js. Data: data/top25_growth_curves.csv (per-stock lines, fetched here). */
 (function () {
   const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
   const usd = v => "$" + Math.round(v).toLocaleString("en-US");
-  const GROUP_COLORS = { sp: "#3987e5", ndx: "#d95926", both: "#9085e9" };
 
   // Company + index group for the 45 tickers on either top-25 list (from data/*_top25_consistent_gainers.csv).
   const META = {CEG:["Constellation Energy","both"],AAPL:["Apple Inc.","both"],MAR:["Marriott International","both"],HWM:["Howmet Aerospace","sp"],APP:["AppLovin","both"],MCK:["McKesson Corporation","sp"],JBL:["Jabil","sp"],GILD:["Gilead Sciences","both"],FIX:["Comfort Systems USA","sp"],LLY:["Lilly (Eli)","sp"],VLO:["Valero Energy","sp"],VRTX:["Vertex Pharmaceuticals","both"],AMAT:["Applied Materials","both"],STX:["Seagate Technology","both"],WMT:["Walmart","both"],AVGO:["Broadcom","both"],GE:["GE Aerospace","sp"],TRGP:["Targa Resources","sp"],GOOG:["Alphabet Inc. (Class C)","both"],AMD:["Advanced Micro Devices","both"],CRWD:["CrowdStrike","both"],CTAS:["Cintas","both"],GOOGL:["Alphabet Inc. (Class A)","both"],MU:["Micron Technology","both"],MPC:["Marathon Petroleum","sp"],VST:["Vistra Corp.","sp"],PANW:["Palo Alto Networks","both"],PLTR:["Palantir Technologies","both"],APH:["Amphenol","sp"],DELL:["Dell Technologies","sp"],KLAC:["KLA Corporation","both"],FLEX:["Flex Ltd.","sp"],WDC:["Western Digital","both"],ORLY:["O'Reilly Automotive","both"],CAH:["Cardinal Health","sp"],CAT:["Caterpillar Inc.","sp"],EME:["Emcor","sp"],PWR:["Quanta Services","sp"],ANET:["Arista Networks","sp"],NVDA:["Nvidia","both"],IBKR:["Interactive Brokers","sp"],LITE:["Lumentum","sp"],LRCX:["Lam Research","both"],MRVL:["Marvell Technology","both"],COST:["Costco","both"]};
@@ -117,7 +115,7 @@
     });
   }
 
-  /* ---------- Per-stock curves (shared by the calculator and the race) ---------- */
+  /* ---------- Per-stock curves (for the race) ---------- */
   const loadCurves = fetch("data/top25_growth_curves.csv").then(r => {
     if (!r.ok) throw new Error("HTTP " + r.status);
     return r.text();
@@ -129,46 +127,6 @@
     tickers.forEach((t, j) => { values[t] = lines.slice(1).map(r => +r[j + 1]); });
     return { tickers, dates, values };
   });
-
-  /* ---------- Calculator ---------- */
-  const calc = $("#calc");
-  if (calc) {
-    const G = window.GROWTH_10K;           // exposed by report.js
-    const amount = $("#calc-amount", calc), slider = $("#calc-week", calc), stockSel = $("#calc-stock", calc);
-    const out = $("#calc-out", calc), dateLabel = $("#calc-date", calc);
-    const groups = [
-      ["S&P 500 top 25", G && G.sp500Top25, "sp"], ["S&P 500, all eligible", G && G.sp500All, "sp"],
-      ["Nasdaq 100 top 25", G && G.nasdaqTop25, "ndx"], ["Nasdaq 100, all eligible", G && G.nasdaqAll, "ndx"]
-    ];
-    let stocks = null;
-    const fmtPct = r => (r >= 0 ? "+" : "−") + Math.abs(r * 100).toLocaleString("en-US", { maximumFractionDigits: 0 }) + "%";
-    function render() {
-      const amt = Math.max(0, parseFloat(String(amount.value).replace(/,/g, "")) || 0), i = +slider.value;
-      dateLabel.textContent = G.dates[i];
-      const cards = groups.map(([label, series, g]) => [label, amt * series[i] / 10000, g]);
-      if (stocks && stocks.values[stockSel.value]) {
-        const t = stockSel.value;
-        cards.push([t + " · " + (META[t] ? META[t][0] : t), amt * stocks.values[t][i] / 10000, META[t] ? META[t][1] : "both"]);
-      }
-      out.innerHTML = cards.map(([label, v, g]) => `
-        <div class="calc__card" style="--c:${GROUP_COLORS[g]}">
-          <div class="calc__label">${label}</div>
-          <div class="calc__value">${usd(v)}</div>
-          <div class="calc__gain ${v >= amt ? "up" : "down"}">${amt ? fmtPct(v / amt - 1) : "—"}</div>
-        </div>`).join("");
-    }
-    if (G) {
-      slider.max = G.dates.length - 1; slider.value = G.dates.length - 1;
-      ["input", "change"].forEach(ev => { amount.addEventListener(ev, render); slider.addEventListener(ev, render); stockSel.addEventListener(ev, render); });
-      render();
-      loadCurves.then(data => {
-        stocks = data;
-        stockSel.innerHTML = data.tickers.slice().sort().map(t => `<option value="${t}">${t} · ${META[t] ? META[t][0] : t}</option>`).join("");
-        stockSel.value = "FIX";
-        render();
-      }).catch(() => { stockSel.parentNode.hidden = true; });
-    }
-  }
 
   /* ---------- Animated race ---------- */
   const raceBox = $("#race");

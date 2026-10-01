@@ -60,32 +60,18 @@
   .tk { color: var(--text-primary); border-bottom: 1px dotted var(--text-muted); cursor: help; transition: background .15s; }
   .tk:hover { background: rgba(var(--ov), 0.14); }
 
-  /* ---- Calculator ---- */
-  .calc { grid-column: 1 / -1; margin-top: 22px; padding: 20px 22px; border-radius: 12px; border: 1px solid var(--hairline);
-    background: linear-gradient(135deg, rgba(57,135,229,0.10), rgba(217,89,38,0.08)); }
-  .calc__title { font-size: 15px; font-weight: 800; margin-bottom: 14px; }
-  .calc__controls { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-end; margin-bottom: 16px; }
-  .calc__controls label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-muted); }
-  .calc__controls input[type=text], .calc__controls select { font: 700 15px var(--font-mono); color: var(--text-primary); background: rgba(var(--shade), 0.35);
-    border: 1px solid var(--hairline); border-radius: 8px; padding: 8px 10px; min-width: 150px; }
-  .calc__money { display: flex; align-items: center; gap: 4px; } .calc__money b { font-family: var(--font-mono); }
-  .calc__date { font-family: var(--font-mono); color: var(--text-primary); font-weight: 700; }
-  .calc__controls input[type=range] { width: 240px; accent-color: var(--sp-color); }
-  .calc__out { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
-  .calc__card { padding: 14px 16px; border-radius: 10px; background: rgba(var(--shade), 0.30); border: 1px solid var(--hairline); border-top: 3px solid var(--c); }
-  .calc__label { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px; }
-  .calc__value { font-family: var(--font-mono); font-size: 22px; font-weight: 800; }
-  .calc__gain { font-family: var(--font-mono); font-size: 12.5px; margin-top: 4px; }
-  .calc__gain.up { color: var(--good); } .calc__gain.down { color: var(--critical); }
-  .calc .calc__note { margin: 14px 0 0; font-size: 12px; color: var(--text-muted); max-width: none; }
+
+  .finding .calc-link { grid-column: 1 / -1; margin-top: 16px; }
+  .calc-link a { display: inline-block; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--sp-color); background: var(--sp-color-soft);
+    color: var(--text-primary); text-decoration: none; font-weight: 600; font-size: 13px; transition: background .15s; }
+  .calc-link a:hover { background: rgba(var(--ov), 0.12); }
 
   /* ---- Light-theme fixes for the report's own styles (the toggle button and light palette are in css/style.css) ---- */
   :root[data-theme="light"] { --toc-bg: rgba(255,255,255,0.85); }
   :root[data-theme="light"] .hero__title { background: linear-gradient(90deg, #12141c 25%, #1f6fd1 100%); -webkit-background-clip: text; background-clip: text; }
   :root[data-theme="light"] .hero__venn text[fill="#fff"] { fill: #12141c; }
   :root[data-theme="light"] .read-progress { opacity: 0.9; }
-  :root[data-theme="light"] .calc__controls input[type=text], :root[data-theme="light"] .calc__controls select { background: #fff; color: var(--text-primary); }
-  :root[data-theme="light"] .calc__card, :root[data-theme="light"] .hm__detail { background: rgba(255,255,255,0.7); }
+  :root[data-theme="light"] .hm__detail { background: rgba(255,255,255,0.7); }
   :root[data-theme="light"] .race__row.lead .race__track { box-shadow: 0 0 0 1.5px var(--text-primary); }
   :root[data-theme="light"] .hm__tile.sel { box-shadow: inset 0 0 0 2px var(--text-primary); }
   :root[data-theme="light"] .finding.card, :root[data-theme="light"] .closing.card { box-shadow: var(--shadow-card); }
@@ -400,16 +386,7 @@
         <div class="chart-card"><div class="chart-title">Average 5-year cumulative return: top 25 most consistent vs. all eligible tickers</div><div class="chart-box" style="height:320px"><canvas id="chart-outperformance"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Growth of $10,000 invested Sep 2021 (equal-weighted; click the legend to hide a line)</div><div class="chart-box" style="height:360px"><canvas id="chart-growth"></canvas></div></div>
       </div>
-      <div class="calc" id="calc">
-        <div class="calc__title">Try it: what would your money have become?</div>
-        <div class="calc__controls">
-          <label>Amount invested Sep 27, 2021 <span class="calc__money"><b>$</b><input id="calc-amount" type="text" inputmode="numeric" value="10,000"></span></label>
-          <label>Value on <span id="calc-date" class="calc__date"></span><input id="calc-week" type="range" min="0" max="262" value="262"></label>
-          <label>Compare with a single stock <select id="calc-stock"><option>FIX</option></select></label>
-        </div>
-        <div class="calc__out" id="calc-out"></div>
-        <p class="calc__note">Equal-weighted, buy-and-hold, no dividends, taxes or costs — and the top 25 were picked in hindsight, so this is what happened, not a strategy.</p>
-      </div>
+      <div class="calc-link"><a href="dashboard.html?tab=calculator">Try the money calculator in the dashboard →</a></div>
     </section>
 
     <section class="finding card">
@@ -544,7 +521,7 @@
       <li>All averages reported (e.g. "avg cumulative return," "avg volatility") are simple, equal-weighted
         means across the tickers in the stated group — no market-cap weighting is applied anywhere in this
         report or the dashboard.</li>
-      <li><strong>Growth of $10,000</strong> (Finding 7 chart and calculator) = $10,000 split equally across a
+      <li><strong>Growth of $10,000</strong> (Finding 7 chart and the dashboard's Calculator tab) = $10,000 split equally across a
         group's tickers at the first week of the panel (Sep 27, 2021) and never rebalanced: each ticker's value is
         its close ÷ its first close, and the group value is 10,000 × the average of those ratios. A ticker whose
         data starts later stays at its starting value until its first week. Dividends, taxes, and trading costs are

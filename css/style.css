@@ -733,3 +733,25 @@ footer.site-footer {
   font-size: 16px; line-height: 1; transition: background .15s, transform .25s;
 }
 .theme-toggle:hover { background: rgba(var(--ov), 0.14); transform: rotate(20deg); }
+
+/* ---------------- Calculator tab (dashboard) ---------------- */
+.calc { padding: 22px 24px; border-radius: 14px; border: 1px solid var(--hairline);
+  background: linear-gradient(135deg, rgba(57,135,229,0.10), rgba(217,89,38,0.08)); }
+.calc__title { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+.calc__sub { margin: 0 0 16px; font-size: 13px; color: var(--text-secondary); max-width: 760px; line-height: 1.5; }
+.calc__controls { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-end; margin-bottom: 18px; }
+.calc__controls label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.calc__controls input[type=text], .calc__controls select { font: 700 15px var(--font-mono); color: var(--text-primary); background: rgba(var(--shade), 0.35);
+  border: 1px solid var(--hairline); border-radius: 8px; padding: 8px 10px; min-width: 150px; }
+.calc__money { display: flex; align-items: center; gap: 4px; } .calc__money b { font-family: var(--font-mono); }
+.calc__date { font-family: var(--font-mono); color: var(--text-primary); font-weight: 700; }
+.calc__controls input[type=range] { width: 260px; accent-color: var(--sp-color); }
+.calc__out { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.calc__card { padding: 14px 16px; border-radius: 10px; background: rgba(var(--shade), 0.30); border: 1px solid var(--hairline); border-top: 3px solid var(--c); }
+.calc__label { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px; }
+.calc__value { font-family: var(--font-mono); font-size: 24px; font-weight: 800; }
+.calc__gain { font-family: var(--font-mono); font-size: 12.5px; margin-top: 4px; }
+.calc__gain.up { color: var(--good); } .calc__gain.down { color: var(--critical); }
+.calc .calc__note { margin: 16px 0 0; font-size: 12px; color: var(--text-muted); max-width: none; }
+:root[data-theme="light"] .calc__controls input[type=text], :root[data-theme="light"] .calc__controls select { background: #fff; color: var(--text-primary); }
+:root[data-theme="light"] .calc__card { background: rgba(255,255,255,0.7); }
