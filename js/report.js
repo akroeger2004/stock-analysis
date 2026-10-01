@@ -44,6 +44,35 @@
     });
   }
 
+  // Writes each bar's value at its tip, so readers don't have to read it off the axis.
+  // Enabled per chart with options.plugins.valueLabels = { fmt: value => text }.
+  Chart.register({
+    id: "valueLabels",
+    afterDatasetsDraw(chart, args, opts) {
+      if (!opts || !opts.fmt) return;
+      const ctx = chart.ctx;
+      const horizontal = chart.options.indexAxis === "y";
+      ctx.save();
+      ctx.font = "700 12px 'JetBrains Mono', monospace";
+      ctx.fillStyle = COLORS.text;
+      chart.data.datasets.forEach((ds, di) => {
+        chart.getDatasetMeta(di).data.forEach((bar, i) => {
+          const v = ds.data[i];
+          if (v === null || v === undefined) return;
+          const text = opts.fmt(v);
+          if (horizontal) {
+            ctx.textAlign = "left"; ctx.textBaseline = "middle";
+            ctx.fillText(text, bar.x + 8, bar.y);
+          } else {
+            ctx.textAlign = "center"; ctx.textBaseline = v < 0 ? "top" : "bottom";
+            ctx.fillText(text, bar.x, bar.y + (v < 0 ? 6 : -6));
+          }
+        });
+      });
+      ctx.restore();
+    }
+  });
+
   // 1. Overlap between the two Top-25 lists
   new Chart(document.getElementById("chart-overlap"), {
     type: "bar",
@@ -53,7 +82,8 @@
     },
     options: baseOpts({
       indexAxis: "y",
-      scales: { x: axisColor({ ticks: { color: COLORS.axis, font: { size: 10 }, stepSize: 5 } }),
+      plugins: { legend: { display: false }, valueLabels: { fmt: v => v + " tickers" } },
+      scales: { x: axisColor({ max: 24, ticks: { color: COLORS.axis, font: { size: 10 }, stepSize: 5 } }),
                 y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 12 } } } }
     })
   });
@@ -130,11 +160,17 @@
   // 6. Average volatility, S&P vs Nasdaq eligible pools
   new Chart(document.getElementById("chart-volatility"), {
     type: "bar",
-    data: { labels: ["S&P 500 (493 eligible)", "Nasdaq 100 (98 eligible)"],
-      datasets: [{ data: [4.455, 5.314], backgroundColor: [COLORS.sp, COLORS.ndx], borderRadius: 6, barThickness: 46 }] },
+    data: { labels: ["S&P 500", "Nasdaq 100"],
+      datasets: [
+        { label: "All eligible tickers (493 S&P 500, 98 Nasdaq 100)", data: [4.46, 5.31], backgroundColor: [COLORS.spSoft, COLORS.ndxSoft], borderRadius: 4 },
+        { label: "Top 25 most consistent", data: [5.48, 5.82], backgroundColor: [COLORS.sp, COLORS.ndx], borderRadius: 4 }
+      ] },
     options: baseOpts({
+      plugins: { legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
+                 valueLabels: { fmt: v => v.toFixed(2) + "%" },
+                 tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}%` } } },
       scales: { x: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 12 } } },
-                y: axisColor({ ticks: { color: COLORS.axis, font: { size: 10 }, callback: v => v + "%" } }) }
+                y: axisColor({ min: 0, max: 7, ticks: { color: COLORS.axis, font: { size: 10 }, stepSize: 1, callback: v => v + "%" } }) }
     })
   });
 
@@ -149,9 +185,10 @@
       ]
     },
     options: baseOpts({
-      plugins: { legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } } },
+      plugins: { legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
+                 valueLabels: { fmt: v => "+" + Math.round(v) + "%" } },
       scales: { x: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 12 } } },
-                y: axisColor({ ticks: { color: COLORS.axis, font: { size: 10 }, callback: v => v + "%" } }) }
+                y: axisColor({ max: 800, ticks: { color: COLORS.axis, font: { size: 10 }, callback: v => v + "%" } }) }
     })
   });
 
@@ -175,11 +212,12 @@
     type: "bar",
     data: {
       labels: ["INSM — Insmed, 2024-05-27", "FISV — Fiserv, 2025-10-27"],
-      datasets: [{ data: [150, -47], backgroundColor: [COLORS.good, COLORS.critical], borderRadius: 6, barThickness: 46 }]
+      datasets: [{ data: [150, -47], backgroundColor: [COLORS.good, COLORS.critical], borderRadius: 6, barThickness: 70 }]
     },
     options: baseOpts({
+      plugins: { legend: { display: false }, valueLabels: { fmt: v => (v > 0 ? "+" : "−") + Math.abs(v) + "%" } },
       scales: { x: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 11.5 } } },
-                y: axisColor({ ticks: { color: COLORS.axis, font: { size: 10 }, callback: v => v + "%" } }) }
+                y: axisColor({ min: -100, max: 200, ticks: { color: COLORS.axis, font: { size: 10 }, stepSize: 50, callback: v => v + "%" } }) }
     })
   });
 })();
