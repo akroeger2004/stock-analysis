@@ -40,7 +40,10 @@
     .finding h2 { grid-column: 1 / -1; }
     .finding p { grid-column: 1; max-width: none; }
     .finding .chart-card { grid-column: 2; grid-row: 2 / span 3; }
+    .finding .chart-stack { grid-column: 2; grid-row: 2 / span 4; }
+    .finding .chart-stack .chart-card { grid-column: auto; grid-row: auto; }
   }
+  .chart-stack { display: flex; flex-direction: column; gap: 16px; }
   /* ---- Hero header ---- */
   .hero { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: center; margin: 4px 0 30px; padding: 34px 32px;
     border-radius: var(--radius); border: 1px solid var(--hairline);
@@ -288,7 +291,18 @@
         window, the steadiest climbers also happened to be dramatically bigger winners than the typical
         stock in their index, not smaller ones.
       </p>
-      <div class="chart-card"><div class="chart-title">Average 5-year cumulative return: top 25 most consistent vs. all eligible tickers</div><div class="chart-box" style="height:320px"><canvas id="chart-outperformance"></canvas></div></div>
+      <p>
+        In dollar terms: $10,000 split equally across the S&amp;P 500's top 25 in September 2021 would have
+        grown to about <strong>$79,700</strong> by September 2026, versus about <strong>$18,800</strong> spread
+        across all 493 eligible S&amp;P 500 tickers. For the Nasdaq 100 the figures are about
+        <strong>$52,000</strong> versus <strong>$23,500</strong>. These are equal-weighted, buy-and-hold figures
+        that ignore dividends and trading costs, and the top 25 were picked with hindsight — so the chart shows
+        what the steadiest stocks delivered, not a strategy anyone could have followed in 2021.
+      </p>
+      <div class="chart-stack">
+        <div class="chart-card"><div class="chart-title">Average 5-year cumulative return: top 25 most consistent vs. all eligible tickers</div><div class="chart-box" style="height:320px"><canvas id="chart-outperformance"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Growth of $10,000 invested Sep 2021 (equal-weighted; click the legend to hide a line)</div><div class="chart-box" style="height:360px"><canvas id="chart-growth"></canvas></div></div>
+      </div>
     </section>
 
     <section class="finding card">
