@@ -57,3 +57,15 @@ $out | Export-Csv "C:\Users\andre\stock-analysis\data\growth_of_10k.csv" -NoType
 
 Write-Output "Pools: S&P all=$(@($spAll).Count) top25=$(@(Select-Eligible $spTop).Count); Nasdaq all=$(@($ndxAll).Count) top25=$(@(Select-Eligible $ndxTop).Count)"
 Write-Output "Final values: $($out[-1] | Format-List | Out-String)"
+
+# Per-stock curves for the 45 tickers on either top-25 list: value of $10,000 put into that one stock at
+# the start (held at $10,000 until the stock's first week; missing weeks carry forward). Feeds the report's
+# calculator and animated race.
+$top = @($spTop + $ndxTop) | Select-Object -Unique
+$stockRows = for ($i = 0; $i -lt $dates.Count; $i++) {
+  $row = [ordered]@{ date = $dates[$i] }
+  foreach ($t in $top) { $row[$t] = [Math]::Round(10000 * $curves[$t][$i], 0) }
+  [pscustomobject]$row
+}
+$stockRows | Export-Csv "C:\Users\andre\stock-analysis\data\top25_growth_curves.csv" -NoTypeInformation
+Write-Output "Wrote data/top25_growth_curves.csv: $($top.Count) tickers x $($dates.Count) weeks"
