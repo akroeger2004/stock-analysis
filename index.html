@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+<script>try { var t = localStorage.getItem("report-theme"); if (t === "light") document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}</script>
 <link rel="stylesheet" href="css/style.css">
 <style>
   .findings { display: flex; flex-direction: column; gap: 30px; }
@@ -33,7 +34,7 @@
   .closing h3 { font-size: 14px; color: var(--text-secondary); margin: 22px 0 8px; }
   .closing p, .closing li { color: var(--text-secondary); line-height: 1.65; }
   .closing ul { margin: 0; padding-left: 20px; }
-  .closing code { font-family: var(--font-mono); background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+  .closing code { font-family: var(--font-mono); background: rgba(var(--ov), 0.06); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
   /* On wide screens put each finding's text and chart side by side instead of leaving the right half empty. */
   @media (min-width: 1100px) {
     .finding { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: 36px; align-items: start; }
@@ -48,16 +49,16 @@
   /* ---- Reading aids ---- */
   .read-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 60; background: linear-gradient(90deg, var(--sp-color), var(--ndx-color)); pointer-events: none; }
   .toc { position: sticky; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 22px; padding: 8px 12px;
-    background: rgba(9,11,18,0.82); backdrop-filter: blur(10px); border: 1px solid var(--hairline); border-radius: 999px; width: fit-content; max-width: 100%; }
+    background: var(--toc-bg, rgba(9,11,18,0.82)); backdrop-filter: blur(10px); border: 1px solid var(--hairline); border-radius: 999px; width: fit-content; max-width: 100%; }
   .toc a { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); text-decoration: none; min-width: 28px; text-align: center;
     padding: 4px 9px; border-radius: 999px; transition: background .15s, color .15s; }
-  .toc a:hover { background: rgba(255,255,255,0.10); color: #fff; }
-  .toc a.active { background: var(--sp-color-soft); box-shadow: inset 0 0 0 1px var(--sp-color); color: #fff; }
+  .toc a:hover { background: rgba(var(--ov), 0.10); color: var(--text-primary); }
+  .toc a.active { background: var(--sp-color-soft); box-shadow: inset 0 0 0 1px var(--sp-color); color: var(--text-primary); }
   .finding, .closing { scroll-margin-top: 130px; }
   html.js-reveal .finding.reveal { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; }
   html.js-reveal .finding.reveal.in { opacity: 1; transform: none; }
-  .tk { color: #fff; border-bottom: 1px dotted var(--text-muted); cursor: help; transition: background .15s; }
-  .tk:hover { background: rgba(255,255,255,0.14); }
+  .tk { color: var(--text-primary); border-bottom: 1px dotted var(--text-muted); cursor: help; transition: background .15s; }
+  .tk:hover { background: rgba(var(--ov), 0.14); }
 
   /* ---- Calculator ---- */
   .calc { grid-column: 1 / -1; margin-top: 22px; padding: 20px 22px; border-radius: 12px; border: 1px solid var(--hairline);
@@ -65,29 +66,44 @@
   .calc__title { font-size: 15px; font-weight: 800; margin-bottom: 14px; }
   .calc__controls { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-end; margin-bottom: 16px; }
   .calc__controls label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-muted); }
-  .calc__controls input[type=text], .calc__controls select { font: 700 15px var(--font-mono); color: #fff; background: rgba(0,0,0,0.35);
+  .calc__controls input[type=text], .calc__controls select { font: 700 15px var(--font-mono); color: var(--text-primary); background: rgba(var(--shade), 0.35);
     border: 1px solid var(--hairline); border-radius: 8px; padding: 8px 10px; min-width: 150px; }
   .calc__money { display: flex; align-items: center; gap: 4px; } .calc__money b { font-family: var(--font-mono); }
-  .calc__date { font-family: var(--font-mono); color: #fff; font-weight: 700; }
+  .calc__date { font-family: var(--font-mono); color: var(--text-primary); font-weight: 700; }
   .calc__controls input[type=range] { width: 240px; accent-color: var(--sp-color); }
   .calc__out { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
-  .calc__card { padding: 14px 16px; border-radius: 10px; background: rgba(0,0,0,0.30); border: 1px solid var(--hairline); border-top: 3px solid var(--c); }
+  .calc__card { padding: 14px 16px; border-radius: 10px; background: rgba(var(--shade), 0.30); border: 1px solid var(--hairline); border-top: 3px solid var(--c); }
   .calc__label { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px; }
   .calc__value { font-family: var(--font-mono); font-size: 22px; font-weight: 800; }
   .calc__gain { font-family: var(--font-mono); font-size: 12.5px; margin-top: 4px; }
   .calc__gain.up { color: var(--good); } .calc__gain.down { color: var(--critical); }
   .calc .calc__note { margin: 14px 0 0; font-size: 12px; color: var(--text-muted); max-width: none; }
 
+  /* ---- Theme toggle and light-theme fixes for the report's own styles ---- */
+  .theme-toggle { margin-left: 6px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--hairline); cursor: pointer;
+    background: rgba(var(--ov), 0.06); color: var(--text-primary); font-size: 16px; line-height: 1; transition: background .15s, transform .25s; }
+  .theme-toggle:hover { background: rgba(var(--ov), 0.14); transform: rotate(20deg); }
+  .site-nav__links { display: flex; align-items: center; }
+  :root[data-theme="light"] { --toc-bg: rgba(255,255,255,0.85); }
+  :root[data-theme="light"] .hero__title { background: linear-gradient(90deg, #12141c 25%, #1f6fd1 100%); -webkit-background-clip: text; background-clip: text; }
+  :root[data-theme="light"] .hero__venn text[fill="#fff"] { fill: #12141c; }
+  :root[data-theme="light"] .read-progress { opacity: 0.9; }
+  :root[data-theme="light"] .calc__controls input[type=text], :root[data-theme="light"] .calc__controls select { background: #fff; color: var(--text-primary); }
+  :root[data-theme="light"] .calc__card, :root[data-theme="light"] .hm__detail { background: rgba(255,255,255,0.7); }
+  :root[data-theme="light"] .race__row.lead .race__track { box-shadow: 0 0 0 1.5px var(--text-primary); }
+  :root[data-theme="light"] .hm__tile.sel { box-shadow: inset 0 0 0 2px var(--text-primary); }
+  :root[data-theme="light"] .finding.card, :root[data-theme="light"] .closing.card { box-shadow: var(--shadow-card); }
+
   /* ---- Sector heatmap ---- */
   .hm__pool { display: flex; gap: 6px; margin: -2px 0 10px; }
-  .hm__pool button { font: 600 11px var(--font-mono); color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--hairline);
+  .hm__pool button { font: 600 11px var(--font-mono); color: var(--text-secondary); background: rgba(var(--ov), 0.05); border: 1px solid var(--hairline);
     border-radius: 999px; padding: 3px 12px; cursor: pointer; }
-  .hm__pool button:hover { background: rgba(255,255,255,0.12); color: #fff; }
-  .hm__pool button.active { background: var(--sp-color-soft); border-color: var(--sp-color); color: #fff; }
+  .hm__pool button:hover { background: rgba(var(--ov), 0.12); color: var(--text-primary); }
+  .hm__pool button.active { background: var(--sp-color-soft); border-color: var(--sp-color); color: var(--text-primary); }
   .hm__map { position: relative; height: 330px; border-radius: 8px; overflow: hidden; }
   .hm__tile { position: absolute; box-sizing: border-box; border: 2px solid var(--surface-1); border-radius: 6px; padding: 8px 10px; text-align: left; cursor: pointer;
     display: flex; flex-direction: column; gap: 2px; overflow: hidden; color: #fff; font-family: var(--font-ui);
-    text-shadow: 0 1px 3px rgba(0,0,0,0.55); transition: filter .15s, box-shadow .15s; }
+    text-shadow: 0 1px 3px rgba(var(--shade), 0.55); transition: filter .15s, box-shadow .15s; }
   .hm__tile:hover, .hm__tile:focus-visible { filter: brightness(1.18); }
   .hm__tile.sel { box-shadow: inset 0 0 0 2px #fff; }
   .hm__sec { font-size: 12px; font-weight: 700; line-height: 1.2; }
@@ -96,7 +112,7 @@
   .hm__legend { display: flex; align-items: center; gap: 8px; margin: 10px 0 12px; font: 11px var(--font-mono); color: var(--text-muted); }
   .hm__legend i { flex: 1; max-width: 240px; height: 8px; border-radius: 4px;
     background: linear-gradient(90deg, rgb(230,103,103) 0%, rgb(58,63,77) 17%, rgb(23,163,74) 100%); }
-  .hm__detail { padding: 12px 14px; border-radius: 10px; background: rgba(0,0,0,0.25); border: 1px solid var(--hairline); min-height: 92px; }
+  .hm__detail { padding: 12px 14px; border-radius: 10px; background: rgba(var(--shade), 0.25); border: 1px solid var(--hairline); min-height: 92px; }
   .hm__dname { font-weight: 800; font-size: 14px; margin-bottom: 8px; }
   .hm__dname span { font-weight: 400; font-size: 12px; color: var(--text-muted); margin-left: 8px; }
   .hm__dgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
@@ -114,15 +130,15 @@
     text-decoration: none; color: var(--text-primary); font-family: var(--font-mono); font-size: 12.5px;
     transition: transform .45s ease, opacity .3s ease; }
   .race__row b { font-weight: 700; }
-  .race__track { display: block; height: 18px; background: rgba(255,255,255,0.04); border-radius: 4px; overflow: hidden; }
+  .race__track { display: block; height: 18px; background: rgba(var(--ov), 0.04); border-radius: 4px; overflow: hidden; }
   .race__track i { display: block; height: 100%; border-radius: 4px; transition: width .45s ease; }
   .race__row.lead .race__track { box-shadow: 0 0 0 1.5px #fff; }
   .race__row em { font-style: normal; text-align: right; color: var(--text-secondary); }
-  .race__row:hover { background: rgba(255,255,255,0.06); }
+  .race__row:hover { background: rgba(var(--ov), 0.06); }
   .race__controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
-  .race__controls button, .race__controls select { font: 600 12px var(--font-mono); color: var(--text-primary); background: rgba(255,255,255,0.07);
+  .race__controls button, .race__controls select { font: 600 12px var(--font-mono); color: var(--text-primary); background: rgba(var(--ov), 0.07);
     border: 1px solid var(--hairline); border-radius: 999px; padding: 5px 13px; cursor: pointer; }
-  .race__controls button:hover { background: rgba(255,255,255,0.14); }
+  .race__controls button:hover { background: rgba(var(--ov), 0.14); }
   .race__controls input[type=range] { flex: 1; min-width: 140px; accent-color: var(--sp-color); }
   .race__legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); }
   .race__legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
@@ -145,7 +161,7 @@
   .hero .byline { margin: 16px 0 14px; font-size: 14px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); padding: 5px 11px; border-radius: 999px;
-    background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); }
+    background: rgba(var(--ov), 0.05); border: 1px solid var(--hairline); }
   .hero__venn { margin: 0; text-align: center; }
   .hero__venn svg { width: 100%; max-width: 300px; height: auto; }
   .hero__venn figcaption { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
@@ -153,10 +169,10 @@
   .v-sm { font-size: 11px; }
   .v-lab { font-size: 8px; fill: var(--text-secondary); text-anchor: middle; }
   .range-btns { display: flex; gap: 6px; margin: -2px 0 10px; }
-  .range-btns button { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); background: rgba(255,255,255,0.05);
+  .range-btns button { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); background: rgba(var(--ov), 0.05);
     border: 1px solid var(--hairline); border-radius: 999px; padding: 3px 12px; cursor: pointer; transition: background .15s, color .15s; }
-  .range-btns button:hover { background: rgba(255,255,255,0.12); color: #fff; }
-  .range-btns button.active { background: var(--sp-color-soft); border-color: var(--sp-color); color: #fff; }
+  .range-btns button:hover { background: rgba(var(--ov), 0.12); color: var(--text-primary); }
+  .range-btns button.active { background: var(--sp-color-soft); border-color: var(--sp-color); color: var(--text-primary); }
   .chart-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin: 0 0 10px; }
   .byline { color: var(--text-muted); font-size: 14px; margin-top: -2px; margin-bottom: 18px; }
 </style>
@@ -171,6 +187,7 @@
   <div class="site-nav__links">
     <a href="index.html" class="active">Report</a>
     <a href="dashboard.html">Dashboard</a>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch to light theme" title="Switch theme"><span aria-hidden="true">☀</span></button>
   </div>
 </nav>
 
@@ -540,6 +557,10 @@
         start, valued each week at 10,000 × close ÷ first close. "Led" means highest value that week among the 45
         stocks on either top-25 list; the first week is excluded because every stock is tied at $10,000. Both
         series are rebuilt by <code>scripts/compute_growth_of_10k.ps1</code>.</li>
+      <li><strong>Sector averages</strong> (Finding 11 and its heatmap) are simple, equal-weighted means across the
+        eligible tickers (≥240 weekly returns) of each sector within an index pool, for cumulative return, weekly
+        volatility (population standard deviation of weekly return), and the risk-adjusted score above. Rebuilt by
+        <code>scripts/compute_sector_summary.ps1</code>.</li>
     </ul>
   </section>
 
@@ -550,5 +571,6 @@
 <script src="js/report.js"></script>
 <script src="js/report-extras.js"></script>
 <script src="js/report-heatmap.js"></script>
+<script src="js/theme.js"></script>
 </body>
 </html>
