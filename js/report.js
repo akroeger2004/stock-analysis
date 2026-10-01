@@ -80,21 +80,46 @@
   });
 
   // 5. Consistency vs. raw gains scatter (labeled points)
-  const scatterPoints = [
-    { x: 5.9, y: 2140, label: "FIX  +2,140%  ·  #1 S&P consistency" },
-    { x: 12.3, y: 1463, label: "BE  +1,463%  ·  #29 (misses top 25)" },
-    { x: 12.9, y: 1058, label: "SMCI  +1,058%  ·  #36 (misses top 25)" },
-    { x: 7.7, y: 1425, label: "MU  +1,425%  ·  #1 Nasdaq consistency" },
-    { x: 6.6, y: 986, label: "STX  +986%  ·  #2 Nasdaq consistency" }
+  const spPoints = [
+    { x: 5.9, y: 2140, tick: "FIX", side: "right", label: "FIX  +2,140%  ·  #1 S&P consistency" },
+    { x: 12.3, y: 1463, tick: "BE", side: "left", label: "BE  +1,463%  ·  #29 (misses top 25)" },
+    { x: 12.9, y: 1058, tick: "SMCI", side: "left", label: "SMCI  +1,058%  ·  #36 (misses top 25)" }
   ];
+  const ndxPoints = [
+    { x: 7.7, y: 1425, tick: "MU", side: "right", label: "MU  +1,425%  ·  #1 Nasdaq consistency" },
+    { x: 6.6, y: 986, tick: "STX", side: "right", label: "STX  +986%  ·  #2 Nasdaq consistency" }
+  ];
+  // Draws each point's ticker next to its marker so readers can tell the dots apart.
+  const pointLabels = {
+    id: "pointLabels",
+    afterDatasetsDraw(chart) {
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = "700 12px 'JetBrains Mono', monospace";
+      ctx.fillStyle = COLORS.text;
+      ctx.textBaseline = "middle";
+      chart.data.datasets.forEach((ds, di) => {
+        chart.getDatasetMeta(di).data.forEach((el, i) => {
+          const p = ds.data[i];
+          ctx.textAlign = p.side === "left" ? "right" : "left";
+          ctx.fillText(p.tick, el.x + (p.side === "left" ? -12 : 12), el.y);
+        });
+      });
+      ctx.restore();
+    }
+  };
   new Chart(document.getElementById("chart-consistency-scatter"), {
     type: "scatter",
-    data: { datasets: [{ data: scatterPoints, backgroundColor: scatterPoints.map((p,i)=> i<3? COLORS.spSoft : COLORS.ndxSoft),
-      borderColor: scatterPoints.map((p,i)=> i<3? COLORS.sp : COLORS.ndx), borderWidth: 1.5, radius: 6, hoverRadius: 8 }] },
+    plugins: [pointLabels],
+    data: { datasets: [
+      { label: "S&P 500 names", data: spPoints, backgroundColor: COLORS.spSoft, borderColor: COLORS.sp, borderWidth: 1.5, radius: 6, hoverRadius: 8 },
+      { label: "Nasdaq 100 names", data: ndxPoints, backgroundColor: COLORS.ndxSoft, borderColor: COLORS.ndx, borderWidth: 1.5, radius: 6, hoverRadius: 8 }
+    ] },
     options: baseOpts({
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => scatterPoints[ctx.dataIndex].label } } },
+      plugins: { legend: { display: true, position: "top", labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
+                 tooltip: { callbacks: { label: ctx => ctx.raw.label } } },
       scales: {
-        x: axisColor({ title: { display: true, text: "Weekly volatility (std. dev.)", color: COLORS.axis, font: { size: 10 } },
+        x: axisColor({ min: 5, max: 14, title: { display: true, text: "Weekly volatility (std. dev.)", color: COLORS.axis, font: { size: 10 } },
                         ticks: { color: COLORS.axis, font: { size: 9 }, callback: v => v + "%" } }),
         y: axisColor({ title: { display: true, text: "5-year cumulative return", color: COLORS.axis, font: { size: 10 } },
                         ticks: { color: COLORS.axis, font: { size: 9 }, callback: v => v + "%" } })
