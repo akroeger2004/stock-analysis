@@ -105,7 +105,7 @@
       });
       bar.appendChild(b);
     });
-    canvas.parentNode.insertBefore(bar, canvas);
+    canvas.parentNode.parentNode.insertBefore(bar, canvas.parentNode);
   }
 
   // Writes each bar's value at its tip, so readers don't have to read it off the axis.

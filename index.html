@@ -16,7 +16,9 @@
   .finding p { color: var(--text-secondary); line-height: 1.65; margin: 0 0 12px; max-width: 780px; }
   .finding p:last-of-type { margin-bottom: 20px; }
   .finding .chart-card { margin-bottom: 0; }
-  .finding .chart-card canvas { width: 100%; height: var(--h, 300px) !important; }
+  /* Each canvas sits in its own fixed-height box so Chart.js sizes the chart from the box, not from the whole card
+     (title and range buttons included) - otherwise the drawing is squashed and hover/click hit areas drift. */
+  .finding .chart-box { position: relative; width: 100%; }
   .headline-grid {
     display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 34px;
   }
@@ -189,7 +191,7 @@
         completely different companies, even though the underlying universes mostly overlap. "Consistent"
         is a much narrower club than "shared index membership."
       </p>
-      <div class="chart-card"><div class="chart-title">Top-25 lists compared: tickers unique to each index vs. shared by both</div><canvas id="chart-overlap" style="--h:260px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Top-25 lists compared: tickers unique to each index vs. shared by both</div><div class="chart-box" style="height:260px"><canvas id="chart-overlap"></canvas></div></div>
     </section>
 
     <section class="finding card">
@@ -206,7 +208,7 @@
         buildout without carrying a traditional "AI stock's" volatility, which is exactly what a
         risk-adjusted score is built to reward.
       </p>
-      <div class="chart-card"><div class="chart-title">Comfort Systems (FIX): weekly closing price (use the range buttons, hover for details)</div><canvas id="chart-fix" style="--h:300px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Comfort Systems (FIX): weekly closing price (use the range buttons, hover for details)</div><div class="chart-box" style="height:300px"><canvas id="chart-fix"></canvas></div></div>
     </section>
 
     <section class="finding card">
@@ -223,7 +225,7 @@
         chip names is itself a finding: the AI-driven memory/storage cycle of 2023–2026 was steady enough,
         for these particular companies, to read as "consistent" rather than merely "volatile and lucky."
       </p>
-      <div class="chart-card"><div class="chart-title">Micron (MU): weekly closing price (use the range buttons, hover for details)</div><canvas id="chart-mu" style="--h:300px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Micron (MU): weekly closing price (use the range buttons, hover for details)</div><div class="chart-box" style="height:300px"><canvas id="chart-mu"></canvas></div></div>
     </section>
 
     <section class="finding card">
@@ -240,7 +242,7 @@
         Targa Resources (Energy) all made the cut. In the Nasdaq 100, steady growth has been overwhelmingly
         a tech-sector story.
       </p>
-      <div class="chart-card"><div class="chart-title">Sector makeup of each index's top 25 most consistent gainers (number of tickers)</div><canvas id="chart-sector" style="--h:420px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Sector makeup of each index's top 25 most consistent gainers (number of tickers)</div><div class="chart-box" style="height:420px"><canvas id="chart-sector"></canvas></div></div>
     </section>
 
     <section class="finding card">
@@ -257,7 +259,7 @@
         total looks spectacular. FIX and MU post smaller (though still huge) headline numbers with far
         less turbulence along the way, which is why they lead their indices instead of BE or SMCI.
       </p>
-      <div class="chart-card"><div class="chart-title">Weekly volatility vs. 5-year cumulative return: the steadier names sit to the left</div><canvas id="chart-consistency-scatter" style="--h:380px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Weekly volatility vs. 5-year cumulative return: the steadier names sit to the left</div><div class="chart-box" style="height:380px"><canvas id="chart-consistency-scatter"></canvas></div></div>
     </section>
 
     <section class="finding card">
@@ -270,7 +272,7 @@
         most consistent stocks are still, on average, more volatile week-to-week than the S&amp;P 500's most
         consistent stocks.
       </p>
-      <div class="chart-card"><div class="chart-title">Average weekly volatility: all eligible tickers vs. the top 25, by index</div><canvas id="chart-volatility" style="--h:320px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Average weekly volatility: all eligible tickers vs. the top 25, by index</div><div class="chart-box" style="height:320px"><canvas id="chart-volatility"></canvas></div></div>
     </section>
 
     <section class="finding card">
@@ -286,7 +288,7 @@
         window, the steadiest climbers also happened to be dramatically bigger winners than the typical
         stock in their index, not smaller ones.
       </p>
-      <div class="chart-card"><div class="chart-title">Average 5-year cumulative return: top 25 most consistent vs. all eligible tickers</div><canvas id="chart-outperformance" style="--h:320px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Average 5-year cumulative return: top 25 most consistent vs. all eligible tickers</div><div class="chart-box" style="height:320px"><canvas id="chart-outperformance"></canvas></div></div>
     </section>
 
     <section class="finding card">
@@ -302,7 +304,7 @@
         None of these were arbitrarily dropped for looking bad — they simply haven't existed as tradeable,
         continuously-listed stocks long enough for a 5-year consistency score to mean anything.
       </p>
-      <div class="chart-card"><div class="chart-title">Weeks of price history for the 12 tickers excluded from the rankings (262 possible)</div><canvas id="chart-excluded" style="--h:400px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Weeks of price history for the 12 tickers excluded from the rankings (262 possible)</div><div class="chart-box" style="height:400px"><canvas id="chart-excluded"></canvas></div></div>
     </section>
 
     <section class="finding card">
@@ -320,7 +322,7 @@
         either of these would overwhelm a plain average, which is exactly why "consistent" is measured
         relative to a stock's own volatility rather than by its raw return alone.
       </p>
-      <div class="chart-card"><div class="chart-title">Best and worst single-week returns among all 133,557 weekly observations</div><canvas id="chart-extremes" style="--h:300px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Best and worst single-week returns among all 133,557 weekly observations</div><div class="chart-box" style="height:300px"><canvas id="chart-extremes"></canvas></div></div>
     </section>
 
   </div>
