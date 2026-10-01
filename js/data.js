@@ -8,11 +8,13 @@ window.StockData = (function () {
   const ELIGIBLE_FRACTION = 240 / FULL_WEEKS; // ~91.6% coverage required
 
   let cache = null;
+  let inflight = null;   // shared by every caller so the 24 MB file is only fetched once
 
   function load(onProgress) {
     if (cache) return Promise.resolve(cache);
+    if (inflight) return inflight;
 
-    return new Promise((resolve, reject) => {
+    inflight = new Promise((resolve, reject) => {
       Papa.parse(DATA_URL, {
         download: true,
         header: true,
@@ -61,6 +63,8 @@ window.StockData = (function () {
         error: (err) => reject(err)
       });
     });
+    inflight.catch(() => { inflight = null; });   // allow a retry after a failed load
+    return inflight;
   }
 
   // Filter a ticker's series to [yearFrom, yearTo] inclusive (by date's year)
