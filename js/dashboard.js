@@ -10,6 +10,7 @@
     axis: "#898781",
     text: "#c3c2b7"
   };
+  window.REPORT_COLORS = COLORS;   // re-colored by js/theme.js when the theme changes
 
   const MEASURES = {
     riskAdjustedScore: { label: "Risk-Adjusted Score (consistency)", fmt: v => SD.fmtNum(v) },
@@ -243,7 +244,7 @@
     function chips(side, rows) {
       const chipsHtml = rows.map(r => {
         const pct = (r.n / maxN * 100).toFixed(0);
-        return `<span class="chip" data-sector="${r.sec}" style="background:linear-gradient(90deg, rgba(255,255,255,0.18) ${pct}%, rgba(255,255,255,0.045) ${pct}%)">${r.sec} <b>${r.n}</b></span>`;
+        return `<span class="chip" data-sector="${r.sec}" style="background:linear-gradient(90deg, rgba(var(--ov),0.18) ${pct}%, rgba(var(--ov),0.045) ${pct}%)">${r.sec} <b>${r.n}</b></span>`;
       }).join("");
       return `<div class="rank-col--${side}">
         <div class="rank-col__head rank-col--${side}"><span class="dot"></span>${side === "sp" ? "S&P 500" : "Nasdaq 100"}</div>
@@ -272,7 +273,7 @@
     function seg(view, label, count, val) {
       const pct = (Math.abs(val) / maxAbs * 100).toFixed(0);
       const fill = val >= 0 ? "rgba(12,163,12,0.3)" : "rgba(230,103,103,0.3)";
-      return `<span class="seg" data-view="${view}" style="background:linear-gradient(90deg, ${fill} ${pct}%, rgba(255,255,255,0.03) ${pct}%)">${label} (${count})<b>${measureInfo.fmt(val)}</b></span>`;
+      return `<span class="seg" data-view="${view}" style="background:linear-gradient(90deg, ${fill} ${pct}%, rgba(var(--ov),0.03) ${pct}%)">${label} (${count})<b>${measureInfo.fmt(val)}</b></span>`;
     }
 
     function line(side, label, top25Avg, top25Count, fullAvg, fullCount) {

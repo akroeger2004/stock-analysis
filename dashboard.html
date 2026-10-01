@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+<script>try { var t = localStorage.getItem("site-theme") || localStorage.getItem("report-theme"); if (t === "light") document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}</script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -20,6 +21,7 @@
   <div class="site-nav__links">
     <a href="index.html">Report</a>
     <a href="dashboard.html" class="active">Dashboard</a>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch to light theme" title="Switch theme"><span aria-hidden="true">☀</span></button>
   </div>
 </nav>
 
@@ -179,5 +181,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/theme.js"></script>
 </body>
 </html>
