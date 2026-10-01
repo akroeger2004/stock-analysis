@@ -160,13 +160,13 @@
     type: "bar",
     data: {
       labels: ["EA", "HONA", "FDXF", "Q", "SNDK", "SOLV", "GEV", "RDDT", "VLTO", "ARM", "KVUE", "GEHC"],
-      datasets: [{ data: [1, 16, 19, 49, 86, 132, 132, 133, 157, 160, 179, 199], backgroundColor: COLORS.warning, borderRadius: 3, barThickness: 13 }]
+      datasets: [{ data: [1, 16, 19, 49, 86, 132, 132, 133, 157, 160, 179, 199], backgroundColor: COLORS.warning, borderRadius: 3, barThickness: 16 }]
     },
     options: baseOpts({
       indexAxis: "y",
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} of 262 weeks (${(ctx.raw/262*100).toFixed(0)}%)` } } },
       scales: { x: axisColor({ title: { display: true, text: "Weeks of history out of 262 possible", color: COLORS.axis, font: { size: 10 } } }),
-                y: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 11, family: "monospace" } } } }
+                y: { grid: { display: false }, ticks: { autoSkip: false, color: COLORS.text, font: { size: 11, family: "monospace" } } } }
     })
   });
 
