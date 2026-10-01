@@ -481,12 +481,18 @@
     const compareMeta = explorer.compareTicker ? SD.getMeta(explorer.compareTicker) : null;
     const datasets = [];
     let dated;
+    let closeByLabel = null;
 
     if (compareMeta) {
       dated = indexTo100(series);
       const compareFull = SD.getSeries(explorer.compareTicker).slice(-explorer.rangeWeeks);
       const compareIndexed = indexTo100(compareFull);
       const compareByDate = new Map(compareIndexed.map(d => [d.x, d.y]));
+      // Actual dollar closes by date, so the tooltip can show real prices next to the indexed values.
+      closeByLabel = {
+        [`${ticker} (indexed)`]: new Map(series.map(r => [r.date, r.close])),
+        [`${explorer.compareTicker} (indexed)`]: new Map(compareFull.map(r => [r.date, r.close]))
+      };
       const compareSide = (compareMeta.indexMembership === "Nasdaq 100") ? "ndx" : "sp";
       // Use the compare ticker's own index color, unless that's the same
       // color as the primary line — then flip so the two are distinguishable.
@@ -526,7 +532,13 @@
         plugins: {
           legend: { display: !!compareMeta, labels: { color: COLORS.text, boxWidth: 12, font: { size: 11 } } },
           tooltip: { callbacks: { label: ctx => {
-            if (compareMeta) return `${ctx.dataset.label}: ${ctx.raw === null ? "—" : ctx.raw.toFixed(1)}`;
+            if (compareMeta) {
+              // "FIX: $1,658.91  (indexed 2,240.0)" - real dollar close first, indexed value for the growth comparison.
+              const name = ctx.dataset.label.replace(" (indexed)", "");
+              const close = closeByLabel[ctx.dataset.label].get(ctx.label);
+              const idx = ctx.raw === null ? "—" : ctx.raw.toFixed(1);
+              return `${name}: ${close === undefined ? "—" : "$" + close.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}  (indexed ${idx})`;
+            }
             const d = dated[ctx.dataIndex];
             const retStr = d.ret === null ? "" : `  (${d.ret>=0?"+":""}${(d.ret*100).toFixed(1)}%)`;
             return `Close: ${SD.fmtMoney(d.y)}${retStr}`;
